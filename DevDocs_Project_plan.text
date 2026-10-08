@@ -1,0 +1,668 @@
+# 🤖 DevDocs AI — AI-Powered Developer Knowledge API
+
+## 🎯 Project Goal
+
+**DevDocs AI** হবে একটি production-style **AI + RAG Backend API** যেখানে developerরা তাদের PDF, TXT এবং Markdown documentation upload করে সেই documents-এর উপর AI-powered প্রশ্ন করতে পারবে।
+
+Project-এর মূল লক্ষ্য:
+
+* FastAPI দিয়ে production-style backend তৈরি করা
+* RAG architecture practically শেখা
+* Vector search ব্যবহার করা
+* PostgreSQL + pgvector ব্যবহার করা
+* Local development-এ Ollama ব্যবহার করা
+* Production-এ Gemini API ব্যবহার করা
+* JWT authentication implement করা
+* Document processing pipeline তৈরি করা
+* AI response-এর সাথে source documents/chunks দেখানো
+* Free tier-এ live deployment করা
+
+---
+
+# 🏗️ Technology Stack
+
+### Backend
+
+* Python
+* FastAPI
+* Pydantic
+* SQLAlchemy
+* Alembic
+
+### Database
+
+* Supabase PostgreSQL
+* pgvector
+
+### Authentication
+
+* JWT
+* Password Hashing
+* Refresh Token
+
+### AI
+
+### Local Development
+
+* Ollama
+* Qwen3:4B
+
+### Production
+
+* Gemini API
+
+### File Storage
+
+* Supabase Storage
+
+### Deployment
+
+* GitHub
+* Render
+
+### Testing
+
+* Pytest
+* HTTPX
+
+### Containerization
+
+* Docker
+* Docker Compose
+
+---
+
+# 💰 Free Deployment Strategy
+
+Project-টা এমনভাবে design করা হবে যাতে free-tier environment-এ run করা যায়।
+
+### Production architecture
+
+```text
+User
+  ↓
+Render
+  ↓
+FastAPI
+  ↓
+Supabase PostgreSQL + pgvector
+  ↓
+Supabase Storage
+
+FastAPI
+  ↓
+Gemini API
+```
+
+### Local architecture
+
+```text
+User
+  ↓
+FastAPI
+  ↓
+Ollama
+  ↓
+Qwen3:4B
+
+FastAPI
+  ↓
+Supabase PostgreSQL
+  ↓
+pgvector
+```
+
+### প্রথম version-এ থাকবে না
+
+Free deployment সহজ রাখার জন্য শুরুতে:
+
+* ❌ RabbitMQ
+* ❌ Celery
+* ❌ Flower
+* ❌ Redis
+* ❌ WebSocket
+* ❌ Pinecone
+* ❌ Separate frontend
+* ❌ Separate vector database
+
+প্রথমে synchronous document processing করা হবে।
+
+পরে চাইলে Celery/Redis যোগ করা যাবে।
+
+---
+
+# 🧠 Core Concept
+
+DevDocs AI মূলত একটি **RAG system**।
+
+RAG = Retrieval-Augmented Generation
+
+Flow:
+
+```text
+Document Upload
+      ↓
+Text Extraction
+      ↓
+Text Cleaning
+      ↓
+Chunking
+      ↓
+Embedding Generation
+      ↓
+pgvector
+```
+
+তারপর user প্রশ্ন করলে:
+
+```text
+User Question
+      ↓
+Question Embedding
+      ↓
+Vector Similarity Search
+      ↓
+Relevant Chunks
+      ↓
+LLM
+      ↓
+Answer + Sources
+```
+
+---
+
+# 🔐 1. Authentication System
+
+## User Model
+
+Fields:
+
+```text
+id
+name
+email
+password_hash
+role
+is_active
+created_at
+updated_at
+```
+
+Roles:
+
+```text
+user
+admin
+```
+
+## Auth APIs
+
+### Register
+
+```http
+POST /api/v1/auth/register
+```
+
+### Login
+
+```http
+POST /api/v1/auth/login
+```
+
+### Refresh Token
+
+```http
+POST /api/v1/auth/refresh
+```
+
+### Current User
+
+```http
+GET /api/v1/auth/me
+```
+
+### Logout
+
+```http
+POST /api/v1/auth/logout
+```
+
+---
+
+# 👤 2. User System
+
+User নিজের account information দেখতে এবং manage করতে পারবে।
+
+### APIs
+
+```http
+GET /api/v1/users/me
+PATCH /api/v1/users/me
+DELETE /api/v1/users/me
+```
+
+Security:
+
+* JWT required
+* inactive user blocked
+* password কখনো response-এ যাবে না
+
+---
+
+# 📁 3. Workspace System
+
+প্রত্যেক user একাধিক workspace তৈরি করতে পারবে।
+
+Example:
+
+```text
+Workspace:
+FastAPI Documentation
+```
+
+অথবা:
+
+```text
+Workspace:
+Python Backend Notes
+```
+
+## Workspace Model
+
+```text
+id
+name
+description
+owner_id
+created_at
+updated_at
+```
+
+## APIs
+
+```http
+POST   /api/v1/workspaces
+GET    /api/v1/workspaces
+GET    /api/v1/workspaces/{workspace_id}
+PATCH  /api/v1/workspaces/{workspace_id}
+DELETE /api/v1/workspaces/{workspace_id}
+```
+
+### Permission
+
+User শুধু নিজের workspace access করতে পারবে।
+
+Admin সব workspace দেখতে পারবে।
+
+---
+
+# 📄 4. Document Management
+
+Workspace-এর মধ্যে documentation upload করা যাবে।
+
+Supported:
+
+```text
+PDF
+TXT
+MD
+```
+
+Example:
+
+```text
+Workspace
+   │
+   ├── FastAPI.pdf
+   ├── SQLAlchemy.md
+   ├── Docker.txt
+   └── PostgreSQL.pdf
+```
+
+## Document Model
+
+```text
+id
+workspace_id
+filename
+file_type
+file_size
+storage_path
+status
+created_at
+updated_at
+```
+
+Status:
+
+```text
+PENDING
+PROCESSING
+COMPLETED
+FAILED
+```
+
+---
+
+# 📤 Document APIs
+
+### Upload
+
+```http
+POST /api/v1/documents/upload
+```
+
+### List
+
+```http
+GET /api/v1/documents
+```
+
+### Get
+
+```http
+GET /api/v1/documents/{document_id}
+```
+
+### Delete
+
+```http
+DELETE /api/v1/documents/{document_id}
+```
+
+---
+
+# ☁️ 5. Supabase Storage
+
+Actual PDF/TXT/MD file PostgreSQL-এর মধ্যে রাখা হবে না।
+
+Instead:
+
+```text
+User
+ ↓
+FastAPI
+ ↓
+Supabase Storage
+```
+
+Database-এ শুধু metadata থাকবে:
+
+```text
+filename
+storage_path
+file_type
+file_size
+```
+
+Example:
+
+```text
+documents/
+    workspace_1/
+        fastapi.pdf
+        docker.md
+```
+
+---
+
+# 🧹 6. Document Processing Pipeline
+
+Upload করার পরে document process হবে।
+
+Pipeline:
+
+```text
+Upload
+  ↓
+Validate File
+  ↓
+Save to Supabase Storage
+  ↓
+Extract Text
+  ↓
+Clean Text
+  ↓
+Chunk Text
+  ↓
+Generate Embeddings
+  ↓
+Save Chunks + Embeddings
+  ↓
+COMPLETED
+```
+
+যদি error হয়:
+
+```text
+FAILED
+```
+
+---
+
+# ✂️ 7. Text Chunking
+
+বড় document সরাসরি AI-কে পাঠানো হবে না।
+
+Example:
+
+```text
+FastAPI documentation
+        ↓
+10,000 words
+        ↓
+Chunk 1
+Chunk 2
+Chunk 3
+...
+Chunk 50
+```
+
+প্রত্যেক chunk-এর metadata থাকবে।
+
+---
+
+# 🧮 8. Document Chunk Model
+
+Table:
+
+```text
+document_chunks
+```
+
+Fields:
+
+```text
+id
+document_id
+content
+chunk_index
+embedding
+created_at
+```
+
+`embedding` field-এ vector data থাকবে।
+
+Example:
+
+```text
+content:
+"FastAPI is a modern Python web framework..."
+
+embedding:
+[0.021, -0.124, 0.551, ...]
+```
+
+---
+
+# 🔎 9. Vector Search
+
+Database:
+
+```text
+Supabase PostgreSQL
+        +
+      pgvector
+```
+
+User প্রশ্ন করলে:
+
+```text
+"What is dependency injection in FastAPI?"
+```
+
+প্রথমে question-এর embedding তৈরি হবে।
+
+তারপর:
+
+```text
+Question Vector
+      ↓
+pgvector similarity search
+      ↓
+Top 5 relevant chunks
+```
+
+---
+
+# 🤖 10. LLM Provider Architecture
+
+আমরা সরাসরি router-এর মধ্যে Ollama বা Gemini code লিখব না।
+
+Provider abstraction থাকবে।
+
+Example:
+
+```text
+LLMService
+    │
+    ├── OllamaProvider
+    │
+    └── GeminiProvider
+```
+
+এতে environment অনুযায়ী provider পরিবর্তন করা যাবে।
+
+---
+
+# 🏠 Local Development
+
+`.env`
+
+```env
+LLM_PROVIDER=ollama
+
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3:4b
+```
+
+Flow:
+
+```text
+FastAPI
+   ↓
+Ollama
+   ↓
+Qwen3:4B
+```
+
+---
+
+# ☁️ Production
+
+Render-এ Ollama চালানো হবে না।
+
+কারণ free 512 MB instance-এর জন্য local LLM চালানো practical নয়।
+
+Production:
+
+```env
+LLM_PROVIDER=gemini
+
+GEMINI_API_KEY=your_api_key
+```
+
+Flow:
+
+```text
+Render
+  ↓
+FastAPI
+  ↓
+Gemini API
+```
+
+Provider abstraction থাকার কারণে application code পরিবর্তন করতে হবে না।
+
+---
+
+# 💬 11. AI Chat
+
+Main endpoint:
+
+```http
+POST /api/v1/chat
+```
+
+Request:
+
+```json
+{
+  "workspace_id": 1,
+  "question": "What is FastAPI dependency injection?"
+}
+```
+
+Backend:
+
+```text
+Question
+   ↓
+Embedding
+   ↓
+Vector Search
+   ↓
+Top Relevant Chunks
+   ↓
+Prompt Construction
+   ↓
+LLM
+   ↓
+Answer
+```
+
+Response:
+
+```json
+{
+  "answer": "FastAPI dependency injection allows...",
+  "sources": [
+    {
+      "document_id": 1,
+      "filename": "fastapi.pdf",
+      "chunk_index": 12
+    }
+  ]
+}
+```
+
+---
+
+# 📚 12. Source Citation
+
+AI শুধু answer দেবে না।
+
+কোন document থেকে answer এসেছে সেটাও দেখাবে।
+
+Example:
+
+```text
+Answer:
+FastAPI dependency injection...
+
+Sources:
+- fastapi.pdf
+- backend-notes.md
+```
+
+এটা project-এর RAG ca
