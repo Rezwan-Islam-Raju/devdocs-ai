@@ -80,3 +80,30 @@ def hash_password(password:str):
     result = password_hash.decode("utf-8")
 
     return result
+
+
+
+# ACTIVATION TOKEN
+
+
+def generate_activation_token():
+
+    return secrets.token_urlsafe(32)
+
+
+
+def hash_refresh_token(token: str):
+
+    result= hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+    return result
+
+
+# REFRESH TOKEN HASH
+
+
+def generate_refresh_token():
+
+    return secrets.token_urlsafe(64)
+
