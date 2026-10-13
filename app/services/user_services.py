@@ -1,18 +1,25 @@
+import datetime
+
 from fastapi import HTTPException, status
+from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.functions import user
 
+from app import db
 from app.core.security import (
     hash_password,
     verify_password,
     encode_access_token
 )
+from app.dependencies.auth_dependecy import require_user_id
 from app.models.user_model import User
 from app.schemas.user_schema import (
     UserRegistrationRequest,
     UserLoginRequest,
-    UserLoginResponse
+    UserLoginResponse, ChangePasswordRequest, ChangePasswordResponse, LogoutResponse, UserUpdateRequest,
+    UserUpdateResponse, UserDeleteResponse
 )
 
 
@@ -118,3 +125,94 @@ async def login_user_service(
         token_type="bearer"
     )
 
+
+async def get_current_service(
+        db: AsyncSession,
+        user_id: int
+):
+
+    result = await db.execute(select(User).where(User.id == user_id))
+
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
+
+
+async def change_password_service(
+    db: AsyncSession,
+    user_id: int,
+    request:ChangePasswordRequest
+):
+
+    result = await db.execute(select(User).where(User.id == user_id))
+
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+
+    if request.new_password != request.confirm_password:
+        raise HTTPException(status_code=400, detail="New password and confirm password do not match")
+
+    if not verify_password(request.old_password, user.password_hash):
+        raise HTTPException(status_code=400,detail="Old password is incorrect")
+
+    # check new password is different
+
+    if request.old_password == request.new_password:
+        raise HTTPException(status_code=200, detail="New password must be different")
+
+
+    # user password hash
+
+    user.password_hash = hash_password(request.new_password)
+
+    user.updated_at = datetime.datetime.now()
+
+    # save everything
+    await db.commit()
+
+    return ChangePasswordResponse(message="Password changed successfully")
+
+
+async def logout_service(db: AsyncSession, user_id: int):
+
+    result = await db.execute(select(User).where(User.id == user_id))
+
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+
+    return LogoutResponse(message="logout successfully")
+
+async def user_update_all_service (db:AsyncSession,user_id: int,request:UserUpdateRequest):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+
+
+    user.name = request.name
+    user.email = request.email
+    user.password_hash = request.password
+    user.updated_at = datetime.datetime.now()
+
+    await db.commit()
+
+    return UserUpdateResponse(message="User updated successfully")
+
+async def user_delete_service(db: AsyncSession,user_id: int):
+
+    result= await db.execute(select(User).where(User.id == user_id))
+
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+
+    await db.delete(user)
+    await db.commit()
+    return UserDeleteResponse(message="User deleted successfully")

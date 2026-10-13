@@ -1,5 +1,5 @@
 import datetime
-
+from typing import Optional
 
 from pydantic import EmailStr, BaseModel,Field
 
@@ -25,6 +25,27 @@ class UserLoginRequest(BaseModel):
 
 class UserLoginResponse(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = 'bearer'
 
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+    confirm_password: str
+
+
+class ChangePasswordResponse(BaseModel):
+    message:str
+
+class LogoutResponse(BaseModel):
+    message: str
+
+class UserUpdateRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+class UserUpdateResponse(BaseModel):
+    message: str
+
+class UserDeleteResponse(BaseModel):
+    message: str
