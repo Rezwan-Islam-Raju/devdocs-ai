@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (Boolean,Column,DateTime,Enum,Integer,String,func)
+from sqlalchemy.orm import relationship
 
 from app.database.session import Base
 
@@ -39,9 +40,7 @@ class User(Base):
         nullable=False
     )
 
+    # Relationship with workspaces
 
-
-
-
-
+    workspaces = relationship("Workspace", back_populates="owner", cascade="all, delete-orphan")
 

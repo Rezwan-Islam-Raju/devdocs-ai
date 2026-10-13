@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.config import settings
 from app.database.session import Base
 from app.models.user_model import User
+from app.models.document_model import Document,DocumentChunk
+from app.models.workspace_model import Workspace
 
 
 # Alembic Config object
