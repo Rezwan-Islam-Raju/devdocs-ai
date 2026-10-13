@@ -8,7 +8,9 @@ from app.database.session import get_db
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.users.users_router import router as users_router
-
+from app.api.v1.documents.documents_router import router as documents_router
+from app.api.v1.ai.ai_chat_router import router as ai_chat_router
+from app.api.v1.workspaces.workspace_router import router as workspace_router
 
 
 app = FastAPI(
@@ -24,7 +26,9 @@ app.add_middleware(
 )
 
 app.include_router(users_router)
-
+app.include_router(workspace_router)
+app.include_router(documents_router)
+app.include_router(ai_chat_router)
 
 
 @app.get("/health")
