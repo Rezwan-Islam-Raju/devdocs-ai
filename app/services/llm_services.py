@@ -9,14 +9,16 @@ from app.core.config import settings
 class LLMService:
     def __init__(self):
         self.provider = settings.LLM_PROVIDER.lower()
+
         self.ollama_url = f"{settings.OLLAMA_BASE_URL}/api/generate"
+
         self.ollama_model = settings.OLLAMA_MODEL
 
 
         if self.provider == "gemini":
             genai.configure(api_key=settings.GEMINI_API_KEY)
 
-    async def generate_rag_answer(self, question: str, contexts: List[str]) -> str:
+    async def generate_rag_answer(self, question: str, contexts: List[str]) :
 
         merged_context = "\n---\n".join(contexts)
 

@@ -8,7 +8,14 @@ from app.models.workspace_model import Workspace
 from app.models.document_model import Document, DocumentStatus
 from app.dependencies.auth_dependecy import require_user_id
 
-router = APIRouter(tags=['Documents'], prefix="/api/v1/documents")
+
+
+
+
+router = APIRouter(
+    tags=['Documents'],
+    prefix="/api/v1/documents"
+)
 
 ALLOWED_EXTENSIONS = {"pdf", "txt", "md"}
 
@@ -24,8 +31,11 @@ async def upload_document(
 ):
 
 
-    ws_result = await db.execute(select(Workspace).where(Workspace.id == workspace_id))
+    ws_result = await db.execute(
+        select(Workspace).where(Workspace.id == workspace_id)
+    )
     workspace = ws_result.scalar_one_or_none()
+
     if not workspace:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -40,18 +50,25 @@ async def upload_document(
         )
 
     file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+
+
     if file_ext not in ALLOWED_EXTENSIONS:
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported file format. Only PDF, TXT, MD allowed.")
+            detail="Unsupported file format. Only PDF, TXT, MD allowed."
+        )
 
     file_data = await file.read()
+
     file_size = len(file_data)
+
     storage_path = f"documents/workspace_{workspace_id}/{file.filename}"
 
     try:
 
         await document_service.upload_to_supabase(
+
             file_data=file_data,
             storage_path=storage_path,
             content_type=file.content_type
@@ -79,8 +96,11 @@ async def upload_document(
         return new_doc
 
     except Exception as e:
+
         await db.rollback()
+
         raise HTTPException(
+
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload/Processing failed: {str(e)}"
         )

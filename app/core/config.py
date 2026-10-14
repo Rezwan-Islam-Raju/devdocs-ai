@@ -28,10 +28,15 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "qwen3:4b"
     GEMINI_API_KEY: str = "optional_gemini_key"
 
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_file_override=True,
         extra="ignore"
     )
 
+
 settings = Settings()
+
+

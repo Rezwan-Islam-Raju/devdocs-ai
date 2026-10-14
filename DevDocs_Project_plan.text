@@ -349,7 +349,7 @@ FAILED
 ### Upload
 
 ```http
-POST /api/v1/documents/upload
+1
 ```
 
 ### List

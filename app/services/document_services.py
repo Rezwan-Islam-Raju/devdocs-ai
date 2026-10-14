@@ -13,7 +13,10 @@ from app.models.document_model import Document, DocumentChunk, DocumentStatus
 
 class DocumentService:
     def __init__(self):
-        self.supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+        self.supabase: Client = create_client(
+            settings.SUPABASE_URL, settings.SUPABASE_KEY
+        )
         self.bucket_name = settings.SUPABASE_BUCKET_NAME
 
 

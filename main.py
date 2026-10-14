@@ -1,3 +1,13 @@
+import sys
+import asyncio
+
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
+
+
 from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,3 +59,5 @@ async def database_health_check(
         "status": "ok",
         "data": value
     }
+
+

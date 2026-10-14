@@ -12,8 +12,8 @@ bearer_scheme = HTTPBearer()
 async def require_user_id(
     credentials: Annotated[
         HTTPAuthorizationCredentials,
-        Depends(bearer_scheme),
-    ],
+        Depends(bearer_scheme)
+    ]
 ) :
 
     try:
@@ -26,7 +26,7 @@ async def require_user_id(
         if not isinstance(user_id, int):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
+                detail="Invalid token"
             )
 
         return user_id

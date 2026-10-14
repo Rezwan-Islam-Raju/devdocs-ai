@@ -153,18 +153,30 @@ async def change_password_service(
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
     if request.new_password != request.confirm_password:
-        raise HTTPException(status_code=400, detail="New password and confirm password do not match")
+        raise HTTPException(
+            status_code=400,
+            detail="New password and confirm password do not match"
+        )
 
     if not verify_password(request.old_password, user.password_hash):
-        raise HTTPException(status_code=400,detail="Old password is incorrect")
+        raise HTTPException(
+            status_code=400,
+            detail="Old password is incorrect"
+        )
 
     # check new password is different
 
     if request.old_password == request.new_password:
-        raise HTTPException(status_code=200, detail="New password must be different")
+        raise HTTPException(
+            status_code=200,
+            detail="New password must be different"
+        )
 
 
     # user password hash
@@ -176,24 +188,39 @@ async def change_password_service(
     # save everything
     await db.commit()
 
-    return ChangePasswordResponse(message="Password changed successfully")
+    return ChangePasswordResponse(
+        message="Password changed successfully"
+    )
 
 
-async def logout_service(db: AsyncSession, user_id: int):
+async def logout_service(
+        db: AsyncSession, user_id: int
+):
 
     result = await db.execute(select(User).where(User.id == user_id))
 
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
-    return LogoutResponse(message="logout successfully")
+    return LogoutResponse(
+        message="logout successfully"
+    )
 
-async def user_update_all_service (db:AsyncSession,user_id: int,request:UserUpdateRequest):
+async def user_update_all_service (
+        db:AsyncSession,user_id:
+        int,request:UserUpdateRequest
+):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
+      raise HTTPException(
+          status_code=status.HTTP_404_NOT_FOUND,
+          detail="User not found"
+      )
 
 
     user.name = request.name
@@ -203,7 +230,9 @@ async def user_update_all_service (db:AsyncSession,user_id: int,request:UserUpda
 
     await db.commit()
 
-    return UserUpdateResponse(message="User updated successfully")
+    return UserUpdateResponse(
+        message="User updated successfully"
+    )
 
 async def user_delete_service(db: AsyncSession,user_id: int):
 
@@ -218,4 +247,6 @@ async def user_delete_service(db: AsyncSession,user_id: int):
 
     await db.delete(user)
     await db.commit()
-    return UserDeleteResponse(message="User deleted successfully")
+    return UserDeleteResponse(
+        message="User deleted successfully"
+    )

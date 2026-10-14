@@ -23,9 +23,13 @@ async def ai_chat(
 ):
 
 
-    ws_result = await db.execute(select(Workspace).where(Workspace.id == chat_in.workspace_id))
+    ws_result = await db.execute(
+        select(Workspace).where(Workspace.id == chat_in.workspace_id)
+    )
     workspace = ws_result.scalar_one_or_none()
+
     if not workspace:
+
         raise HTTPException(
             status_code=404,
             detail="Workspace not found"
@@ -34,6 +38,7 @@ async def ai_chat(
 
 
     if workspace.owner_id != current_user:
+
         raise HTTPException(
             status_code=403,
             detail="Access denied to this workspace"
@@ -41,6 +46,7 @@ async def ai_chat(
 
 
     question_vector = await embedding_service.get_embedding(chat_in.question)
+
     if not question_vector:
         raise HTTPException(
             status_code=500,
@@ -50,6 +56,7 @@ async def ai_chat(
 
 
     chunk_query = (
+
         select(DocumentChunk, Document.file_name)
 
         .join(Document, DocumentChunk.document_id == Document.id)
@@ -60,6 +67,7 @@ async def ai_chat(
         .limit(5)
     )
     chunk_result = await db.execute(chunk_query)
+
     rows = chunk_result.all()
 
     if not rows:
@@ -70,7 +78,9 @@ async def ai_chat(
         )
 
     contexts = []
+
     sources = []
+
     for chunk, file_name in rows:
         contexts.append(chunk.content)
         sources.append(ChatSource(
