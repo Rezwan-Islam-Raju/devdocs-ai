@@ -7,14 +7,18 @@ Base = declarative_base()
 db_url = URL.create(
     drivername="postgresql+asyncpg",
     username="postgres.ojmkdcjgvvvsauvyjkxa",
-    password="msSPb85iHvLboOM7",
+    password="rezwan1122@#",
     host="aws-0-ap-southeast-2.pooler.supabase.com",
-    port=6543,
-    database="postgres",
-    query={"prepared_statement_cache_size": "0"}
+    port=5432,
+    database="postgres"
 )
 
-engine = create_async_engine(db_url, echo=True)
+# Supabase Pgbouncer
+engine = create_async_engine(
+    db_url,
+    echo=True,
+    pool_pre_ping=True
+)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

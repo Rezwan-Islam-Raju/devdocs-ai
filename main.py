@@ -37,7 +37,8 @@ app.add_middleware(
 
 app.include_router(users_router)
 app.include_router(workspace_router)
-app.include_router(documents_router)
+app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documents"])
+
 app.include_router(ai_chat_router)
 
 
