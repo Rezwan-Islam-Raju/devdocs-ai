@@ -134,7 +134,7 @@ class DocumentService:
 
             text = file_data.decode(
                 "utf-8",
-                errors="ignore",
+                errors="ignore"
             )
 
         else:
@@ -151,7 +151,7 @@ class DocumentService:
         self,
         text: str,
         chunk_size: int = 500,
-        chunk_overlap: int = 50,
+        chunk_overlap: int = 50
     ) -> list[str]:
 
         if not text or not text.strip():
@@ -214,7 +214,7 @@ class DocumentService:
                     model="gemini-embedding-001",
                     contents=text,
                     config=types.EmbedContentConfig(
-                        output_dimensionality=1536,
+                        output_dimensionality=1536
                     ),
                 ),
             )
@@ -316,7 +316,7 @@ class DocumentService:
                     document_id=doc_id,
                     content=chunk_content,
                     chunk_index=index,
-                    embedding=vector_data,
+                    embedding=vector_data
                 )
 
                 db.add(db_chunk)
@@ -330,7 +330,7 @@ class DocumentService:
                 "Document %s processed successfully. "
                 "Chunks created: %s",
                 doc_id,
-                len(text_chunks),
+                len(text_chunks)
             )
 
         except Exception:
@@ -339,7 +339,7 @@ class DocumentService:
 
             logger.exception(
                 "Document processing failed: %s",
-                doc_id,
+                doc_id
             )
 
             # Mark failed if the document still exists
@@ -347,7 +347,7 @@ class DocumentService:
 
                 failed_doc = await db.get(
                     Document,
-                    doc_id,
+                    doc_id
                 )
 
                 if failed_doc:

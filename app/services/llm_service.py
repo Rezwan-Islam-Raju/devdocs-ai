@@ -27,8 +27,8 @@ class LLMService:
     async def generate_rag_answer(
         self,
         question: str,
-        contexts: List[str],
-    ) -> str:
+        contexts: List[str]
+    ):
 
         # Validate question
         if not question or not question.strip():
@@ -82,15 +82,15 @@ STRICT RULES:
 [ANSWER]
 """
 
-        # ==========================================
+
         # OLLAMA PROVIDER
-        # ==========================================
+
         if self.provider == "ollama":
 
             payload = {
                 "model": self.ollama_model,
                 "prompt": prompt,
-                "stream": False,
+                "stream": False
             }
 
             try:
@@ -145,9 +145,8 @@ STRICT RULES:
                     "the answer with Ollama."
                 )
 
-        # ==========================================
         # GEMINI PROVIDER
-        # ==========================================
+
         elif self.provider == "gemini":
 
             if self.ai_client is None:
@@ -163,7 +162,7 @@ STRICT RULES:
                         None,
                         lambda: self.ai_client.models.generate_content(
                             model="gemini-3.8-flash",
-                            contents=prompt,
+                            contents=prompt
                         ),
                     )
 
@@ -199,7 +198,7 @@ STRICT RULES:
                             "500",
                             "internal",
                             "deadline",
-                            "timed out",
+                            "timed out"
                         )
                     )
 
@@ -229,9 +228,8 @@ STRICT RULES:
                 "failed. Please try again later."
             )
 
-        # ==========================================
         # UNKNOWN PROVIDER
-        # ==========================================
+
         return "Unknown LLM provider configured."
 
 
