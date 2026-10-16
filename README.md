@@ -726,7 +726,7 @@ Install:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/DevDocs-AI.git
+git clone https://github.com/Rezwan-Islam-Raju/devdocs-ai.git
 ```
 
 Navigate into the project:
