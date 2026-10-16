@@ -735,7 +735,6 @@ Navigate into the project:
 cd DevDocs-AI
 ```
 
-Replace `YOUR_USERNAME/DevDocs-AI` with the actual repository path.
 
 ### 2. Create a Virtual Environment
 
