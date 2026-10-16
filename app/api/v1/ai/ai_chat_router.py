@@ -7,9 +7,8 @@ from app.dependencies.auth_dependecy import require_user_id
 from app.models.workspace_model import Workspace
 from app.models.document_model import Document, DocumentChunk
 from app.schemas.chat_schema import ChatRequest, ChatResponse, ChatSource
-from app.services import llm_services
-
-from app.services.embedding_services import embedding_service
+from app.services.llm_service import llm_service
+from app.services.embedding_service import embedding_service
 
 router = APIRouter(tags=['AI Chat'], prefix="/api/v1")
 
@@ -90,7 +89,7 @@ async def ai_chat(
         ))
 
 
-    ai_answer = await llm_services.generate_rag_answer(
+    ai_answer = await llm_service.generate_rag_answer(
         question=chat_in.question,
         contexts=contexts
     )

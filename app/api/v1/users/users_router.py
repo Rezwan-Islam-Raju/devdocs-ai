@@ -11,7 +11,7 @@ from app.schemas.user_schema import (
     UserLoginRequest,
     UserLoginResponse, ChangePasswordRequest, UserUpdateRequest,
 )
-from app.services.user_services import (
+from app.services.user_service import (
     register_user_service,
     login_user_service, get_current_service, change_password_service, logout_service,
     user_update_all_service, user_delete_service,

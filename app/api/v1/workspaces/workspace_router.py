@@ -6,7 +6,7 @@ from app.database.session import get_db
 from app.dependencies.auth_dependecy import require_user_id
 from app.schemas.workspace_schema import MessageResponse
 from app.schemas.workspace_schema import WorkspaceCreate, WorkspaceUpdate, WorkspaceResponse
-from app.services.workspace_services import workspace_service
+from app.services.workspace_service import workspace_service
 
 router = APIRouter(tags=['Workspaces'], prefix="/api/v1/workspaces")
 

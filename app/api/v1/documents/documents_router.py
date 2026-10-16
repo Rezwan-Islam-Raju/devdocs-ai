@@ -3,19 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.database.session import get_db
-from app.services.document_services import document_service
+
 from app.models.workspace_model import Workspace
 from app.models.document_model import Document, DocumentStatus
 from app.dependencies.auth_dependecy import require_user_id
+from app.services.document_service import document_service
 
-
-
-
-
-router = APIRouter(
-    tags=['Documents'],
-    prefix="/api/v1/documents"
-)
+router = APIRouter()
 
 ALLOWED_EXTENSIONS = {"pdf", "txt", "md"}
 
