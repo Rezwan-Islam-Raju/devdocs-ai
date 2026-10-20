@@ -52,7 +52,7 @@ class DocumentChunk(Base):
     )
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer, nullable=False)
-    embedding = Column(Vector(768), nullable=True)
+    embedding = Column(Vector(1536), nullable=False)
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
