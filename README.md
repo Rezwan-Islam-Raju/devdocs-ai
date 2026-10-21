@@ -729,10 +729,10 @@ Install:
 git clone https://github.com/Rezwan-Islam-Raju/devdocs-ai.git
 ```
 
-Navigate into the project:
+Navigate into the cloned project:
 
 ```bash
-cd DevDocs-AI
+cd devdocs-ai
 ```
 
 
@@ -758,7 +758,15 @@ pip install -r requirements.txt
 
 ### 4. Configure Environment Variables
 
-Create `.env` and configure your database, JWT, Supabase Storage, and AI settings.
+In Windows PowerShell, copy the example file only if you do not already have `.env`, then edit its placeholders:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Set your Supabase PostgreSQL `DATABASE_URL` using the `postgresql+asyncpg://` driver, a new random `SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`, and `GEMINI_API_KEY`. URL-encode special characters in the database password. Create the configured storage bucket (`devdocs-documents`) in Supabase, or update `SUPABASE_BUCKET_NAME`.
+
+Gemini embeddings are used for document processing and chat retrieval even if `LLM_PROVIDER=ollama`. Choose `LLM_PROVIDER=ollama` to generate answers with local Ollama, or `LLM_PROVIDER=gemini` to use Gemini for answers too. Never commit `.env` or put real credentials in source files.
 
 ### 5. Enable pgvector
 
@@ -776,7 +784,7 @@ Confirm that your database schema, vector dimensions, and SQLAlchemy models are 
 alembic upgrade head
 ```
 
-### 7. Start Ollama
+### 7. Start Ollama (only when `LLM_PROVIDER=ollama`)
 
 Download the local model:
 
@@ -790,15 +798,21 @@ Make sure Ollama is running and accessible at:
 http://localhost:11434
 ```
 
-### 8. Start the API
+### 8. Start the API and frontend
 
-If `main.py` is located in the project root:
+From the project root, run:
 
-```bash
-uvicorn main:app --reload
+```powershell
+python -m uvicorn main:app --reload
 ```
 
-The application should now be available locally.
+Keep the terminal open. FastAPI serves the backend and frontend together at **http://127.0.0.1:8000/**; no separate frontend build or server is needed.
+
+### DevDocs AI web interface
+
+Open **http://127.0.0.1:8000/** to use the built-in HTML, CSS, and JavaScript interface. Do not open `frontend/index.html` directly as a `file://` URL: the `/static/` assets and backend API are served by FastAPI. Sign in or create an account, create a workspace, then upload PDF, TXT, or Markdown files to ask questions about your documentation.
+
+The frontend files are `frontend/index.html`, `frontend/styles.css`, and `frontend/app.js`. FastAPI serves the page at `/` and its CSS/JavaScript from `/static/`. Tailwind utility styles load from the CDN, so a browser internet connection is needed for those utilities; the app's custom responsive styles and animations remain in `frontend/styles.css`. Document listing is available at `GET /api/v1/documents/?workspace_id={workspace_id}` and requires a bearer token for a workspace you own.
 
 ---
 

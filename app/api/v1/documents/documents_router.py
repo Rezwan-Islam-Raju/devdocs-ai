@@ -13,6 +13,36 @@ router = APIRouter()
 
 ALLOWED_EXTENSIONS = {"pdf", "txt", "md"}
 
+@router.get("/")
+async def list_documents(
+        workspace_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user: int = Depends(require_user_id)
+):
+    ws_result = await db.execute(
+        select(Workspace).where(Workspace.id == workspace_id)
+    )
+    workspace = ws_result.scalar_one_or_none()
+
+    if not workspace:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found"
+        )
+
+    if workspace.owner_id != current_user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this workspace"
+        )
+
+    result = await db.execute(
+        select(Document)
+        .where(Document.workspace_id == workspace_id)
+        .order_by(Document.created_at.desc())
+    )
+    return result.scalars().all()
+
 
 @router.post("/upload")
 async def upload_document(

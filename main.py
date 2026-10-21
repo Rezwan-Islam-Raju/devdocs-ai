@@ -8,7 +8,11 @@ if sys.platform == 'win32':
 
 
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +32,13 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
+frontend_dir = Path(__file__).resolve().parent / "frontend"
+app.mount(
+    "/static",
+    StaticFiles(directory=frontend_dir),
+    name="static",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,6 +51,10 @@ app.include_router(workspace_router)
 app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documents"])
 
 app.include_router(ai_chat_router)
+
+@app.get("/", include_in_schema=False)
+async def frontend():
+    return FileResponse(frontend_dir / "index.html")
 
 
 @app.get("/health")
@@ -60,5 +75,4 @@ async def database_health_check(
         "status": "ok",
         "data": value
     }
-
 

@@ -1,31 +1,28 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.engine import URL
+
+from app.core.config import settings
 
 Base = declarative_base()
 
-db_url = URL.create(
-    drivername="postgresql+asyncpg",
-    username="postgres.ojmkdcjgvvvsauvyjkxa",
-    password="rezwan1122@#",
-    host="aws-0-ap-southeast-2.pooler.supabase.com",
-    port=5432,
-    database="postgres"
+database_url = make_url(settings.DATABASE_URL).set(
+    drivername="postgresql+asyncpg"
 )
 
-# Supabase Pgbouncer
 engine = create_async_engine(
-    db_url,
-    echo=True,
-    pool_pre_ping=True
+    database_url,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
 )
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     expire_on_commit=False,
     class_=AsyncSession,
-    autoflush=True
+    autoflush=True,
 )
+
 
 async def get_db():
     async with AsyncSessionLocal() as db:

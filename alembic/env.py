@@ -5,8 +5,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.core.config import settings
-from app.database.session import Base
+from app.database.session import Base, database_url
 from app.models.user_model import User
 from app.models.document_model import Document,DocumentChunk
 from app.models.workspace_model import Workspace
@@ -28,7 +27,7 @@ target_metadata = Base.metadata
 def run_migrations_offline() -> None:
     """Run migrations in offline mode."""
 
-    url = settings.DATABASE_URL
+    url = database_url.render_as_string(hide_password=False)
 
     context.configure(
         url=url,
@@ -59,7 +58,7 @@ async def run_migrations_online() -> None:
     """Run migrations using async SQLAlchemy engine."""
 
     connectable = create_async_engine(
-        settings.DATABASE_URL,
+        database_url,
         poolclass=pool.NullPool,
     )
 
