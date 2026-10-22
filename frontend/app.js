@@ -198,14 +198,16 @@
               <span class="dashboard-avatar">${escapeHtml((state.user.name || "U").charAt(0).toUpperCase())}</span>
               <span class="dashboard-user-copy"><strong>${escapeHtml(state.user.name)}</strong><small>Personal workspace</small></span>
             </div>
-            <button id="sign-out" type="button" class="dashboard-signout">Sign out</button>
           </div>
         </aside>
 
         <div class="dashboard-main">
           <header class="dashboard-topbar">
             <div><span class="dashboard-eyebrow">YOUR WORKSPACE</span><span class="dashboard-topbar-title">Overview</span></div>
-            <span class="dashboard-online"><span></span> Workspace ready</span>
+            <div class="dashboard-topbar-actions">
+              <span class="dashboard-online"><span></span> Workspace ready</span>
+              <button id="sign-out" type="button" class="dashboard-signout dashboard-topbar-signout">Sign out</button>
+            </div>
           </header>
 
           <div class="dashboard-content">
@@ -267,6 +269,7 @@
               </div>
             </div>
             <p id="app-notice" role="status" aria-live="polite" class="dashboard-notice"></p>
+            <footer class="dashboard-credit">Developed with care by <strong>Rezwan</strong></footer>
           </div>
         </div>
       </main>`;
