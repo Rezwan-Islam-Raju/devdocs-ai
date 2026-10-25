@@ -3,164 +3,389 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8fafc">
-  <title>DevDocs AI — Sign in</title>
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="Ask your developer documentation questions and get answers grounded in your own sources.">
+  <title>DevDocs AI — Your documentation, understood</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/static/styles.css">
+
+  <style>
+    :root {
+      --dd-ink: #22243a;
+      --dd-muted: #777d94;
+      --dd-line: #e8e9f2;
+      --dd-violet: #6558d9;
+      --dd-violet-dark: #5145c3;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "DM Sans", sans-serif; color: var(--dd-ink); }
+    h1, h2, h3, .brand-name { font-family: "Manrope", sans-serif; }
+    .auth-screen {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 82% 8%, rgba(115, 103, 229, .10), transparent 29%),
+        #f7f8fc;
+    }
+    .auth-layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(430px, .92fr);
+    }
+    .brand-panel {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(34px, 5vw, 70px);
+      color: white;
+      background: #17172e;
+    }
+    .brand-panel::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 570px; height: 570px;
+      top: -245px; left: -180px;
+      border-radius: 50%;
+      background: rgba(111, 94, 230, .43);
+      filter: blur(90px);
+    }
+    .brand-panel::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 460px; height: 460px;
+      right: -210px; bottom: -160px;
+      border-radius: 50%;
+      background: rgba(74, 94, 204, .32);
+      filter: blur(85px);
+    }
+    .brand-grid {
+      position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      opacity: .055;
+      background-image: linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(ellipse at 48% 45%, #000 5%, transparent 78%);
+    }
+    .brand-logo {
+      display: inline-flex; align-items: center; gap: 12px;
+      width: fit-content; color: #fff; text-decoration: none;
+      font-family: "Manrope", sans-serif; font-size: 20px; font-weight: 800;
+      letter-spacing: -.8px;
+    }
+    .brand-mark {
+      display: grid; place-items: center; width: 42px; height: 42px;
+      border-radius: 14px; color: #fff; font-size: 20px;
+      background: linear-gradient(145deg, #9a8cf7, #6554d7);
+      box-shadow: 0 8px 24px rgba(103, 86, 221, .32);
+      border: 1px solid rgba(255,255,255,.22);
+    }
+    .brand-logo .dot { color: #b8adff; }
+    .brand-copy { max-width: 650px; padding: 54px 0 36px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 8px 12px; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px; background: rgba(255,255,255,.065);
+      color: #d7d3f5; font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    .eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: #5ee0ad; box-shadow: 0 0 0 4px rgba(94,224,173,.12); }
+    .brand-copy h1 {
+      margin: 25px 0 17px; max-width: 630px;
+      font-size: clamp(42px, 4.5vw, 68px); line-height: 1.04;
+      letter-spacing: -.055em; font-weight: 800;
+    }
+    .gradient-text {
+      display: block;
+      background: linear-gradient(95deg, #e0dbff 0%, #aaa0ff 48%, #8d9cff 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .brand-description { max-width: 475px; margin: 0; color: #b3b5cd; font-size: 16px; line-height: 1.8; }
+    .preview-window {
+      position: relative; max-width: 550px; margin-top: 38px;
+      padding: 17px; border: 1px solid rgba(255,255,255,.15);
+      border-radius: 20px; background: rgba(255,255,255,.075);
+      box-shadow: 0 25px 70px rgba(0,0,0,.2);
+      backdrop-filter: blur(18px);
+      transform: rotate(-1deg);
+      animation: float-in 650ms ease both;
+    }
+    .preview-top { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
+    .window-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .preview-label { margin-left: 7px; color: #bfc0d5; font-size: 11px; }
+    .preview-question {
+      width: fit-content; max-width: 90%; margin: 0 0 13px auto;
+      padding: 10px 13px; border-radius: 13px 13px 4px 13px;
+      background: #34334f; color: #f7f6ff; font-size: 12px;
+    }
+    .preview-answer { display: flex; align-items: flex-start; gap: 10px; }
+    .mini-ai {
+      display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px;
+      border-radius: 9px; background: linear-gradient(145deg, #9587f6, #6151d4);
+      color: white; font-size: 13px;
+    }
+    .answer-bubble {
+      padding: 12px 14px; border-radius: 4px 13px 13px 13px;
+      background: #fff; color: #46465e; font-size: 12px; line-height: 1.7;
+    }
+    .source-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .source-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px;
+      border: 1px solid #e8e7f7; border-radius: 999px;
+      background: #f8f7ff; color: #6658c9; font-size: 10px; font-weight: 600;
+    }
+    .source-pill::before { content: "↗"; font-size: 10px; }
+    .brand-bottom { display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #a9abc4; font-size: 11px; }
+    .brand-bottom strong { color: #fff; font-weight: 700; }
+    .trust-items { display: flex; flex-wrap: wrap; gap: 16px; }
+    .trust-items span { display: inline-flex; align-items: center; gap: 6px; }
+    .trust-check { color: #7ce1bd; }
+
+    .form-panel {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      padding: 48px clamp(24px, 5vw, 76px); overflow: hidden;
+    }
+    .form-panel::before {
+      content: ""; position: absolute; top: -170px; right: -160px;
+      width: 380px; height: 380px; border-radius: 50%;
+      background: rgba(120, 105, 232, .09); filter: blur(60px); pointer-events: none;
+    }
+    .form-panel::after {
+      content: ""; position: absolute; bottom: -170px; left: -150px;
+      width: 340px; height: 340px; border-radius: 50%;
+      background: rgba(145, 155, 245, .10); filter: blur(70px); pointer-events: none;
+    }
+    .auth-card { position: relative; z-index: 1; width: 100%; max-width: 430px; animation: card-in .55s ease both; }
+    .mobile-brand { display: none; }
+    .form-heading { margin-bottom: 30px; }
+    .form-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--dd-violet); font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    .form-kicker::before { content: ""; width: 20px; height: 2px; border-radius: 2px; background: var(--dd-violet); }
+    #auth-title { margin: 15px 0 9px; color: #24243b; font-size: clamp(30px, 3vw, 37px); font-weight: 800; line-height: 1.16; letter-spacing: -.045em; }
+    .auth-subtitle { margin: 0; color: #7b8096; font-size: 14px; line-height: 1.7; }
+    #auth-form { display: flex; flex-direction: column; gap: 18px; }
+    .field { display: block; color: #41445d; font-size: 12px; font-weight: 700; }
+    .field > span { position: relative; display: block; margin-top: 8px; }
+    .field-icon {
+      position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
+      display: grid; place-items: center; color: #a0a3b6; pointer-events: none;
+    }
+    .field input {
+      display: block; width: 100%; min-height: 51px; padding: 13px 44px 13px 44px;
+      border: 1px solid #e4e6ef; border-radius: 12px; outline: none;
+      background: rgba(255,255,255,.8); color: #25263d; font: 400 14px "DM Sans", sans-serif;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .field input::placeholder { color: #afb2c2; }
+    .field input:hover { border-color: #d0d2e2; }
+    .field input:focus { border-color: #8e83eb; background: #fff; box-shadow: 0 0 0 4px rgba(101,88,217,.11); }
+    #toggle-password {
+      position: absolute; top: 50%; right: 7px; transform: translateY(-50%);
+      display: grid; place-items: center; width: 36px; height: 36px;
+      border: 0; border-radius: 9px; background: transparent; color: #969bb0; cursor: pointer;
+    }
+    #toggle-password:hover { background: #f1f0fc; color: var(--dd-violet); }
+    #strength-wrap { display: flex; }
+    #strength-wrap.hidden { display: none; }
+    #strength-label { color: #9296aa; }
+    .form-error:empty { display: none; }
+    .form-error:not(:empty) { margin: -3px 0 0; padding: 11px 13px; border: 1px solid #ffd4dc; border-radius: 10px; background: #fff5f6; color: #be3451; font-size: 12px; line-height: 1.5; }
+    #auth-submit {
+      min-height: 51px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 2px; padding: 13px 18px; border: 0; border-radius: 12px;
+      background: linear-gradient(110deg, #7669e7, #5c50ce); color: #fff;
+      font: 700 14px "DM Sans", sans-serif; cursor: pointer;
+      box-shadow: 0 9px 20px rgba(101,88,217,.20);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    #auth-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(101,88,217,.27); filter: saturate(1.08); }
+    #auth-submit:active { transform: translateY(0); }
+    #auth-submit:disabled { opacity: .62; cursor: wait; transform: none; }
+    .auth-switch { margin: 24px 0 0; color: #85899d; text-align: center; font-size: 13px; }
+    #auth-switch {
+      margin-left: 4px; padding: 0; border: 0; background: transparent;
+      color: var(--dd-violet); font: 700 13px "DM Sans", sans-serif; cursor: pointer;
+    }
+    #auth-switch:hover { color: var(--dd-violet-dark); text-decoration: underline; text-underline-offset: 4px; }
+    .auth-footnote {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 20px;
+      margin-top: 32px; color: #9b9fb1; font-size: 11px;
+    }
+    .auth-footnote span { display: inline-flex; align-items: center; gap: 6px; }
+    .auth-footnote svg { color: #858aab; }
+    .auth-footnote span + span::before { content: ""; width: 3px; height: 3px; margin-right: 9px; border-radius: 50%; background: #c5c7d4; }
+
+    @keyframes card-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes float-in { from { opacity: 0; transform: translateY(10px) rotate(-1deg); } to { opacity: 1; transform: translateY(0) rotate(-1deg); } }
+    @media (max-width: 1023px) {
+      .auth-layout { grid-template-columns: minmax(0, 1fr); }
+      .brand-panel { display: none; }
+      .form-panel { min-height: 100vh; padding: 38px 22px; }
+      .auth-card { max-width: 440px; }
+      .mobile-brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 32px; color: #24243b; text-decoration: none; font: 800 19px "Manrope", sans-serif; letter-spacing: -.7px; }
+      .mobile-brand .brand-mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }
+      .mobile-brand .dot { color: var(--dd-violet); }
+    }
+    @media (max-width: 480px) {
+      .form-panel { padding: 27px 18px; align-items: flex-start; }
+      .auth-card { margin: auto 0; }
+      .mobile-brand { margin-bottom: 27px; }
+      .form-heading { margin-bottom: 25px; }
+      #auth-title { font-size: 31px; }
+      #auth-form { gap: 16px; }
+      .auth-footnote { margin-top: 25px; gap: 10px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
 </head>
 <body>
-<section id="auth-screen" class="auth-screen grid min-h-screen bg-[#f8fafc] lg:grid-cols-[1.15fr_1fr]">
-  
+  <section id="auth-screen" class="auth-screen">
+    <div class="auth-layout">
 
-  <!-- ============ LEFT: brand panel ============ -->
-  <div class="relative hidden overflow-hidden bg-[#070b1a] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
-    <!-- aurora + grid + noise -->
-    <div class="dd-aurora pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#7864e9]/45 blur-[130px]"></div>
-    <div class="dd-aurora-2 pointer-events-none absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-indigo-500/35 blur-[130px]"></div>
-    <div class="pointer-events-none absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-[110px]"></div>
-    <div class="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_72%)]"></div>
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+      <!-- Brand / product preview -->
+      <aside class="brand-panel" aria-label="About DevDocs AI">
+        <div class="brand-grid"></div>
 
-    <a href="/" aria-label="DevDocs AI home" class="relative z-10 flex w-fit items-center gap-2.5 text-xl font-bold tracking-tight text-white no-underline">
-      <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#8f7cf2] to-[#5b46c9] text-sm shadow-lg shadow-[#7864e9]/50 ring-1 ring-white/20">✦</span>
-      devdocs<span class="text-[#b4a8ff]">.ai</span>
-    </a>
+        <a href="/" aria-label="DevDocs AI home" class="brand-logo">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span>devdocs<span class="dot">.ai</span></span>
+        </a>
 
-    <div class="relative z-10 max-w-xl">
-      <span class="dd-rise inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 shadow-inner backdrop-blur">
-        <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span></span>
-        Your knowledge, in flow
-      </span>
-      <h1 class="dd-rise mb-5 mt-6 text-5xl font-bold leading-[1.05] tracking-[-0.03em] xl:text-[64px]" style="animation-delay:.08s">
-        Everything your docs know.
-        <span class="block bg-gradient-to-r from-[#d0c8ff] via-[#9d8cf5] to-[#7864e9] bg-clip-text text-transparent">Finally within reach.</span>
-      </h1>
-      <p class="dd-rise m-0 max-w-md text-lg leading-relaxed text-slate-400" style="animation-delay:.16s">Bring your technical knowledge together and get answers grounded in the docs you trust.</p>
+        <div class="brand-copy">
+          <span class="eyebrow"><span class="eyebrow-dot"></span> Your knowledge, in flow</span>
+          <h1>Less searching.<span class="gradient-text">More building.</span></h1>
+          <p class="brand-description">
+            Bring your technical documentation together. Ask better questions,
+            find useful answers, and see exactly where they came from.
+          </p>
 
-      <!-- Floating product mock -->
-      <div class="relative mt-12 h-[250px]">
-        <div class="dd-float absolute left-0 top-0 w-[88%] rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] ring-1 ring-white/5 backdrop-blur-xl">
-          <div class="mb-3 flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-400/80"></span><span class="h-2.5 w-2.5 rounded-full bg-amber-400/80"></span><span class="h-2.5 w-2.5 rounded-full bg-emerald-400/80"></span><span class="ml-3 text-[11px] font-medium text-slate-400">Ask your docs</span></div>
-          <div class="mb-3 flex justify-end"><span class="rounded-2xl rounded-br-md bg-slate-700/80 px-3.5 py-2 text-[13px] text-slate-100">How do I rotate API keys?</span></div>
-          <div class="flex items-start gap-2.5">
-            <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#8f7cf2] to-[#5b46c9] text-xs">✦</span>
-            <div class="rounded-2xl rounded-tl-md bg-white px-3.5 py-3 text-[13px] leading-relaxed text-slate-700 shadow-lg">
-              Go to <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] text-[#6551d5]">Settings → API</span> and click <strong class="text-slate-900">Rotate key</strong>. Old keys stay valid for 24 hours.
-              <div class="mt-2.5 flex gap-1.5">
-                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600"><span class="grid h-3.5 w-3.5 place-items-center rounded-full bg-[#7864e9]/15 text-[8px] font-bold text-[#6551d5]">1</span>security.md</span>
-                <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600"><span class="grid h-3.5 w-3.5 place-items-center rounded-full bg-[#7864e9]/15 text-[8px] font-bold text-[#6551d5]">2</span>api.pdf</span>
+          <div class="preview-window" aria-label="Example of an AI answer with sources">
+            <div class="preview-top">
+              <span class="window-dot" style="background:#ff858b"></span>
+              <span class="window-dot" style="background:#f5c568"></span>
+              <span class="window-dot" style="background:#62d9a9"></span>
+              <span class="preview-label">Ask your documentation</span>
+            </div>
+            <p class="preview-question">How do I rotate API keys?</p>
+            <div class="preview-answer">
+              <span class="mini-ai" aria-hidden="true">✦</span>
+              <div class="answer-bubble">
+                Open <strong>Settings → API</strong> and choose <strong>Rotate key</strong>.
+                Check your security documentation for the exact steps and requirements.
+                <div class="source-pills">
+                  <span class="source-pill">security.md</span>
+                  <span class="source-pill">api-guide.pdf</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="dd-float-2 absolute -right-2 bottom-0 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 shadow-2xl backdrop-blur-xl">
-          <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30">✓</span>
-          <span class="block"><strong class="block text-[13px] font-semibold text-white">Grounded answers</strong><small class="text-[12px] text-slate-400">Every reply cites its source</small></span>
+
+        <div class="brand-bottom">
+          <span>Built for developers, by design.</span>
+          <div class="trust-items">
+            <span><b class="trust-check">✓</b> Source-aware answers</span>
+            <span><b class="trust-check">✓</b> Your docs, your workspace</span>
+          </div>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- Stats strip -->
-    <div class="relative z-10 grid max-w-xl grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/10 bg-white/[0.04] py-4 backdrop-blur-xl">
-      <div class="px-5"><strong class="block text-xl font-bold tracking-tight text-white">10×</strong><small class="text-[12px] text-slate-400">faster than searching</small></div>
-      <div class="px-5"><strong class="block text-xl font-bold tracking-tight text-white">100%</strong><small class="text-[12px] text-slate-400">answers with sources</small></div>
-      <div class="px-5"><strong class="block text-xl font-bold tracking-tight text-white">AES‑256</strong><small class="text-[12px] text-slate-400">encrypted, private</small></div>
-    </div>
-  </div>
+      <!-- Authentication form -->
+      <main class="form-panel">
+        <div class="auth-card">
+          <a href="/" aria-label="DevDocs AI home" class="mobile-brand">
+            <span class="brand-mark" aria-hidden="true">✦</span>
+            <span>devdocs<span class="dot">.ai</span></span>
+          </a>
 
-  <!-- ============ RIGHT: form ============ -->
-  <div class="relative flex items-center justify-center overflow-hidden px-5 py-10 sm:px-8">
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_50%_0%,rgba(120,100,233,0.14),transparent)]"></div>
-    <div class="pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-[#7864e9]/10 blur-[90px]"></div>
+          <div class="form-heading">
+            <span class="form-kicker">Welcome to DevDocs AI</span>
+            <h2 id="auth-title">Welcome back</h2>
+            <p id="auth-subtitle" class="auth-subtitle">Sign in to pick up where you left off.</p>
+          </div>
 
-    <div class="auth-card dd-rise relative w-full max-w-[460px]">
-      <!-- mobile brand -->
-      <a href="/" class="mb-8 flex items-center gap-2.5 text-xl font-bold tracking-tight text-slate-900 no-underline lg:hidden">
-        <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#8f7cf2] to-[#5b46c9] text-sm text-white shadow-lg shadow-[#7864e9]/30">✦</span>devdocs<span class="text-[#7864e9]">.ai</span>
-      </a>
-
-      <!-- gradient hairline frame -->
-      <div class="rounded-[28px] bg-gradient-to-b from-[#7864e9]/50 via-slate-200/70 to-indigo-300/40 p-px shadow-[0_40px_90px_-30px_rgba(91,70,201,0.45)]">
-        <div class="rounded-[27px] bg-white/95 p-7 backdrop-blur-xl sm:p-10">
-          <span class="inline-flex items-center gap-2 rounded-full bg-[#7864e9]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6551d5]">
-            <span class="h-1.5 w-1.5 rounded-full bg-[#7864e9]"></span>Welcome to DevDocs AI
-          </span>
-          <h2 id="auth-title" class="mb-2 mt-4 text-[32px] font-bold leading-tight tracking-[-0.025em] text-slate-900">Welcome back</h2>
-          <p id="auth-subtitle" class="auth-subtitle m-0 mb-8 text-[15px] leading-relaxed text-slate-500">Sign in to pick up where you left off.</p>
-
-          <form id="auth-form" class="space-y-4">
-            <label id="name-field" class="field auth-name-field hidden text-[13px] font-semibold text-slate-700 [&:not(.hidden)]:block">Full name
-              <span class="relative mt-1.5 block">
-                <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          <form id="auth-form">
+            <label id="name-field" class="field auth-name-field hidden">
+              Full name
+              <span>
+                <span class="field-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                 </span>
-                <input id="auth-name" name="name" autocomplete="name" minlength="2" placeholder="Your name"
-                  class="block w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3.5 pl-11 pr-4 text-[15px] font-normal text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-[#7864e9] focus:bg-white focus:shadow-[0_0_0_4px_rgba(120,100,233,0.14)]">
+                <input id="auth-name" name="name" autocomplete="name" minlength="2" placeholder="Your name">
               </span>
             </label>
 
-            <label class="field block text-[13px] font-semibold text-slate-700">Email address
-              <span class="relative mt-1.5 block">
-                <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            <label class="field">
+              Email address
+              <span>
+                <span class="field-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
                 </span>
-                <input id="auth-email" name="email" type="email" autocomplete="email" required placeholder="devdocs@example.com"
-                  class="block w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3.5 pl-11 pr-4 text-[15px] font-normal text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-[#7864e9] focus:bg-white focus:shadow-[0_0_0_4px_rgba(120,100,233,0.14)]">
+                <input id="auth-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
               </span>
             </label>
 
-            <label class="field block text-[13px] font-semibold text-slate-700">Password
-              <span class="relative mt-1.5 block">
-                <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <label class="field">
+              Password
+              <span>
+                <span class="field-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
                 </span>
-                <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters"
-                  class="block w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3.5 pl-11 pr-12 text-[15px] font-normal text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-[#7864e9] focus:bg-white focus:shadow-[0_0_0_4px_rgba(120,100,233,0.14)]">
-                <button type="button" id="toggle-password" aria-label="Show password"
-                  class="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition duration-200 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7864e9]">
-                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Enter your password">
+                <button type="button" id="toggle-password" aria-label="Show password" title="Show password">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </span>
-              <!-- strength meter (shown while creating an account) -->
-              <span id="strength-wrap" class="mt-2.5 hidden items-center gap-3" aria-live="polite">
+              <span id="strength-wrap" class="hidden items-center gap-3" aria-live="polite">
                 <span class="grid flex-1 grid-cols-4 gap-1.5">
                   <span class="h-1 rounded-full bg-slate-200 transition-colors duration-300" data-bar></span>
                   <span class="h-1 rounded-full bg-slate-200 transition-colors duration-300" data-bar></span>
                   <span class="h-1 rounded-full bg-slate-200 transition-colors duration-300" data-bar></span>
                   <span class="h-1 rounded-full bg-slate-200 transition-colors duration-300" data-bar></span>
                 </span>
-                <span id="strength-label" class="w-14 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400"></span>
+                <span id="strength-label" class="w-14 text-right text-[11px] font-semibold uppercase tracking-wider"> </span>
               </span>
             </label>
 
-            <p id="auth-error" role="alert" class="form-error m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] font-medium text-rose-600 empty:hidden"></p>
+            <p id="auth-error" role="alert" class="form-error"></p>
 
-            <button id="auth-submit" type="submit"
-              class="button button-primary button-full dd-shimmer group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-[#8a79f0] to-[#5f4bd0] px-5 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_30px_-8px_rgba(120,100,233,0.7)] ring-1 ring-inset ring-white/25 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(120,100,233,0.8)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7864e9]/30 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
-              Sign in <span aria-hidden="true" class="transition duration-200 group-hover:translate-x-1">→</span>
+            <button id="auth-submit" type="submit">
+              <span>Sign in</span>
+              <span aria-hidden="true">→</span>
             </button>
           </form>
 
-          <p class="auth-switch m-0 mt-7 text-center text-sm text-slate-500">
+          <p class="auth-switch">
             <span id="auth-switch-copy">New to DevDocs?</span>
-            <button id="auth-switch" type="button" class="text-button cursor-pointer border-0 bg-transparent p-0 font-semibold text-[#6551d5] underline-offset-4 transition duration-200 hover:text-[#4f3dbb] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7864e9]/40">Create an account</button>
+            <button id="auth-switch" type="button">Create an account</button>
           </p>
+
+          <div class="auth-footnote">
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Private workspace
+            </span>
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>
+              Built with security in mind
+            </span>
+          </div>
         </div>
-      </div>
-
-      <!-- trust row -->
-      <div class="auth-footnote mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-slate-400">
-        <span class="inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Encrypted &amp; private</span>
-        <span class="inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.400 8 8 9 4.600-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Your docs stay yours</span>
-      </div>
+      </main>
     </div>
-  </div>
-
-  
-</section>
+  </section>
 
   <script src="/static/app.js" defer></script>
 </body>

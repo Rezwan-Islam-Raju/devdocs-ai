@@ -390,7 +390,7 @@ The application is configured to use the Gemini API.
 LLM_PROVIDER=gemini
 
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.8-flash or gemini-3.5-flash-lite
 ```
 
 ### Provider Benefits
