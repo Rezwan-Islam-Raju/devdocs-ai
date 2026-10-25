@@ -50,7 +50,7 @@ def is_general_conversation(question: str) -> bool:
         "bye",
         "goodbye",
         "who are you",
-        "what can you do",
+        "what can you do"
     }
 
     return normalized in general_messages
@@ -60,18 +60,29 @@ def is_general_conversation(question: str) -> bool:
 async def ai_chat(
     chat_in: ChatRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: int = Depends(require_user_id),
+    current_user: int = Depends(require_user_id)
 ):
-    #  Validate the question
     question = chat_in.question.strip()
 
     if not question:
         raise HTTPException(
             status_code=422,
-            detail="Question cannot be empty",
+            detail="Question cannot be empty"
         )
 
-    #  Validate workspace access
+    #  No workspace: use general AI chat
+    if chat_in.workspace_id is None:
+        answer = await llm_service.generate_rag_answer(
+            question=question,
+            contexts=[]
+        )
+
+        return ChatResponse(
+            answer=answer,
+            sources=[]
+        )
+
+    #  Workspace provided: validate ownership
     ws_result = await db.execute(
         select(Workspace).where(
             Workspace.id == chat_in.workspace_id
@@ -83,28 +94,16 @@ async def ai_chat(
     if workspace is None:
         raise HTTPException(
             status_code=404,
-            detail="Workspace not found",
+            detail="Workspace not found"
         )
 
     if workspace.owner_id != current_user:
         raise HTTPException(
             status_code=403,
-            detail="Access denied to this workspace",
+            detail="Access denied to this workspace"
         )
 
-    #  Skip document retrieval for simple conversations
-    if is_general_conversation(question):
-        answer = await llm_service.generate_rag_answer(
-            question=question,
-            contexts=[],
-        )
-
-        return ChatResponse(
-            answer=answer,
-            sources=[],
-        )
-
-    #  Generate the question embedding
+    # 3. Workspace exists: retrieve document chunks
     question_vector = await embedding_service.get_embedding(
         question
     )
@@ -112,10 +111,9 @@ async def ai_chat(
     if not question_vector:
         raise HTTPException(
             status_code=500,
-            detail="Failed to generate question embedding",
+            detail="Failed to generate question embedding"
         )
 
-    #  Retrieve the closest chunks from this workspace
     distance = DocumentChunk.embedding.cosine_distance(
         question_vector
     )
@@ -124,11 +122,11 @@ async def ai_chat(
         select(
             DocumentChunk,
             Document.file_name,
-            distance.label("distance"),
+            distance.label("distance")
         )
         .join(
             Document,
-            DocumentChunk.document_id == Document.id,
+            DocumentChunk.document_id == Document.id
         )
         .where(
             Document.workspace_id == chat_in.workspace_id
@@ -140,7 +138,6 @@ async def ai_chat(
     chunk_result = await db.execute(chunk_query)
     rows = chunk_result.all()
 
-    #  Filter chunks using the cosine-distance threshold
     relevant_rows = [
         row
         for row in rows
@@ -148,7 +145,6 @@ async def ai_chat(
         and float(row.distance) <= MAX_COSINE_DISTANCE
     ]
 
-    #  Prepare relevant contexts and sources
     contexts = []
     sources = []
 
@@ -159,20 +155,17 @@ async def ai_chat(
             ChatSource(
                 document_id=chunk.document_id,
                 file_name=file_name,
-                chunk_index=chunk.chunk_index,
+                chunk_index=chunk.chunk_index
             )
         )
 
-    #  Generate the answer
-    # If no relevant chunks are found, contexts and sources stay empty.
-    ai_answer = await llm_service.generate_rag_answer(
+    #  Generate answer with retrieved context
+    answer = await llm_service.generate_rag_answer(
         question=question,
-        contexts=contexts,
+        contexts=contexts
     )
 
-    #  Return the answer and only the retrieved relevant sources
     return ChatResponse(
-        answer=ai_answer,
-        sources=sources,
+        answer=answer,
+        sources=sources
     )
-

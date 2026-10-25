@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="7" y1="5" x2="57" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A99BFF"/>
+      <stop offset=".55" stop-color="#7561E2"/>
+      <stop offset="1" stop-color="#5140B8"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="17" y1="19" x2="54" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#E5DFFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tile)"/>
+  <path d="M17 47V17h12a9 9 0 0 1 0 18H17m10 0 12 12" stroke="url(#mark)" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+  <path d="M39 47V17h13M39 31h11" stroke="#D7CEFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+</svg>

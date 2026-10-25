@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List,Optional
 
 
 class ChatRequest(BaseModel):
-    workspace_id: int
+    workspace_id: Optional[int] = None
     question: str
 
 

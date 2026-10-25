@@ -5,262 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f8fc">
   <meta name="description" content="Ask your developer documentation questions and get answers grounded in your own sources.">
-  <title>DevDocs AI — Your documentation, understood</title>
+  <title>Rezifa AI — Your documentation, understood</title>
+  <link rel="icon" type="image/svg+xml" href="/static/rezifa-mark.svg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=8">
 
-  <style>
-    :root {
-      --dd-ink: #22243a;
-      --dd-muted: #777d94;
-      --dd-line: #e8e9f2;
-      --dd-violet: #6558d9;
-      --dd-violet-dark: #5145c3;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "DM Sans", sans-serif; color: var(--dd-ink); }
-    h1, h2, h3, .brand-name { font-family: "Manrope", sans-serif; }
-    .auth-screen {
-      min-height: 100vh;
-      background:
-        radial-gradient(ellipse at 82% 8%, rgba(115, 103, 229, .10), transparent 29%),
-        #f7f8fc;
-    }
-    .auth-layout {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(430px, .92fr);
-    }
-    .brand-panel {
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: clamp(34px, 5vw, 70px);
-      color: white;
-      background: #17172e;
-    }
-    .brand-panel::before {
-      content: "";
-      position: absolute;
-      z-index: -1;
-      width: 570px; height: 570px;
-      top: -245px; left: -180px;
-      border-radius: 50%;
-      background: rgba(111, 94, 230, .43);
-      filter: blur(90px);
-    }
-    .brand-panel::after {
-      content: "";
-      position: absolute;
-      z-index: -1;
-      width: 460px; height: 460px;
-      right: -210px; bottom: -160px;
-      border-radius: 50%;
-      background: rgba(74, 94, 204, .32);
-      filter: blur(85px);
-    }
-    .brand-grid {
-      position: absolute; inset: 0; z-index: -1; pointer-events: none;
-      opacity: .055;
-      background-image: linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
-      background-size: 42px 42px;
-      mask-image: radial-gradient(ellipse at 48% 45%, #000 5%, transparent 78%);
-    }
-    .brand-logo {
-      display: inline-flex; align-items: center; gap: 12px;
-      width: fit-content; color: #fff; text-decoration: none;
-      font-family: "Manrope", sans-serif; font-size: 20px; font-weight: 800;
-      letter-spacing: -.8px;
-    }
-    .brand-mark {
-      display: grid; place-items: center; width: 42px; height: 42px;
-      border-radius: 14px; color: #fff; font-size: 20px;
-      background: linear-gradient(145deg, #9a8cf7, #6554d7);
-      box-shadow: 0 8px 24px rgba(103, 86, 221, .32);
-      border: 1px solid rgba(255,255,255,.22);
-    }
-    .brand-logo .dot { color: #b8adff; }
-    .brand-copy { max-width: 650px; padding: 54px 0 36px; }
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 9px;
-      padding: 8px 12px; border: 1px solid rgba(255,255,255,.14);
-      border-radius: 999px; background: rgba(255,255,255,.065);
-      color: #d7d3f5; font-size: 11px; font-weight: 700;
-      letter-spacing: .12em; text-transform: uppercase;
-    }
-    .eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: #5ee0ad; box-shadow: 0 0 0 4px rgba(94,224,173,.12); }
-    .brand-copy h1 {
-      margin: 25px 0 17px; max-width: 630px;
-      font-size: clamp(42px, 4.5vw, 68px); line-height: 1.04;
-      letter-spacing: -.055em; font-weight: 800;
-    }
-    .gradient-text {
-      display: block;
-      background: linear-gradient(95deg, #e0dbff 0%, #aaa0ff 48%, #8d9cff 100%);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .brand-description { max-width: 475px; margin: 0; color: #b3b5cd; font-size: 16px; line-height: 1.8; }
-    .preview-window {
-      position: relative; max-width: 550px; margin-top: 38px;
-      padding: 17px; border: 1px solid rgba(255,255,255,.15);
-      border-radius: 20px; background: rgba(255,255,255,.075);
-      box-shadow: 0 25px 70px rgba(0,0,0,.2);
-      backdrop-filter: blur(18px);
-      transform: rotate(-1deg);
-      animation: float-in 650ms ease both;
-    }
-    .preview-top { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; }
-    .window-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .preview-label { margin-left: 7px; color: #bfc0d5; font-size: 11px; }
-    .preview-question {
-      width: fit-content; max-width: 90%; margin: 0 0 13px auto;
-      padding: 10px 13px; border-radius: 13px 13px 4px 13px;
-      background: #34334f; color: #f7f6ff; font-size: 12px;
-    }
-    .preview-answer { display: flex; align-items: flex-start; gap: 10px; }
-    .mini-ai {
-      display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px;
-      border-radius: 9px; background: linear-gradient(145deg, #9587f6, #6151d4);
-      color: white; font-size: 13px;
-    }
-    .answer-bubble {
-      padding: 12px 14px; border-radius: 4px 13px 13px 13px;
-      background: #fff; color: #46465e; font-size: 12px; line-height: 1.7;
-    }
-    .source-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .source-pill {
-      display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px;
-      border: 1px solid #e8e7f7; border-radius: 999px;
-      background: #f8f7ff; color: #6658c9; font-size: 10px; font-weight: 600;
-    }
-    .source-pill::before { content: "↗"; font-size: 10px; }
-    .brand-bottom { display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #a9abc4; font-size: 11px; }
-    .brand-bottom strong { color: #fff; font-weight: 700; }
-    .trust-items { display: flex; flex-wrap: wrap; gap: 16px; }
-    .trust-items span { display: inline-flex; align-items: center; gap: 6px; }
-    .trust-check { color: #7ce1bd; }
-
-    .form-panel {
-      position: relative; display: flex; align-items: center; justify-content: center;
-      padding: 48px clamp(24px, 5vw, 76px); overflow: hidden;
-    }
-    .form-panel::before {
-      content: ""; position: absolute; top: -170px; right: -160px;
-      width: 380px; height: 380px; border-radius: 50%;
-      background: rgba(120, 105, 232, .09); filter: blur(60px); pointer-events: none;
-    }
-    .form-panel::after {
-      content: ""; position: absolute; bottom: -170px; left: -150px;
-      width: 340px; height: 340px; border-radius: 50%;
-      background: rgba(145, 155, 245, .10); filter: blur(70px); pointer-events: none;
-    }
-    .auth-card { position: relative; z-index: 1; width: 100%; max-width: 430px; animation: card-in .55s ease both; }
-    .mobile-brand { display: none; }
-    .form-heading { margin-bottom: 30px; }
-    .form-kicker {
-      display: inline-flex; align-items: center; gap: 8px;
-      color: var(--dd-violet); font-size: 11px; font-weight: 700;
-      letter-spacing: .12em; text-transform: uppercase;
-    }
-    .form-kicker::before { content: ""; width: 20px; height: 2px; border-radius: 2px; background: var(--dd-violet); }
-    #auth-title { margin: 15px 0 9px; color: #24243b; font-size: clamp(30px, 3vw, 37px); font-weight: 800; line-height: 1.16; letter-spacing: -.045em; }
-    .auth-subtitle { margin: 0; color: #7b8096; font-size: 14px; line-height: 1.7; }
-    #auth-form { display: flex; flex-direction: column; gap: 18px; }
-    .field { display: block; color: #41445d; font-size: 12px; font-weight: 700; }
-    .field > span { position: relative; display: block; margin-top: 8px; }
-    .field-icon {
-      position: absolute; top: 50%; left: 14px; transform: translateY(-50%);
-      display: grid; place-items: center; color: #a0a3b6; pointer-events: none;
-    }
-    .field input {
-      display: block; width: 100%; min-height: 51px; padding: 13px 44px 13px 44px;
-      border: 1px solid #e4e6ef; border-radius: 12px; outline: none;
-      background: rgba(255,255,255,.8); color: #25263d; font: 400 14px "DM Sans", sans-serif;
-      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-    }
-    .field input::placeholder { color: #afb2c2; }
-    .field input:hover { border-color: #d0d2e2; }
-    .field input:focus { border-color: #8e83eb; background: #fff; box-shadow: 0 0 0 4px rgba(101,88,217,.11); }
-    #toggle-password {
-      position: absolute; top: 50%; right: 7px; transform: translateY(-50%);
-      display: grid; place-items: center; width: 36px; height: 36px;
-      border: 0; border-radius: 9px; background: transparent; color: #969bb0; cursor: pointer;
-    }
-    #toggle-password:hover { background: #f1f0fc; color: var(--dd-violet); }
-    #strength-wrap { display: flex; }
-    #strength-wrap.hidden { display: none; }
-    #strength-label { color: #9296aa; }
-    .form-error:empty { display: none; }
-    .form-error:not(:empty) { margin: -3px 0 0; padding: 11px 13px; border: 1px solid #ffd4dc; border-radius: 10px; background: #fff5f6; color: #be3451; font-size: 12px; line-height: 1.5; }
-    #auth-submit {
-      min-height: 51px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-      margin-top: 2px; padding: 13px 18px; border: 0; border-radius: 12px;
-      background: linear-gradient(110deg, #7669e7, #5c50ce); color: #fff;
-      font: 700 14px "DM Sans", sans-serif; cursor: pointer;
-      box-shadow: 0 9px 20px rgba(101,88,217,.20);
-      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-    }
-    #auth-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(101,88,217,.27); filter: saturate(1.08); }
-    #auth-submit:active { transform: translateY(0); }
-    #auth-submit:disabled { opacity: .62; cursor: wait; transform: none; }
-    .auth-switch { margin: 24px 0 0; color: #85899d; text-align: center; font-size: 13px; }
-    #auth-switch {
-      margin-left: 4px; padding: 0; border: 0; background: transparent;
-      color: var(--dd-violet); font: 700 13px "DM Sans", sans-serif; cursor: pointer;
-    }
-    #auth-switch:hover { color: var(--dd-violet-dark); text-decoration: underline; text-underline-offset: 4px; }
-    .auth-footnote {
-      display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 20px;
-      margin-top: 32px; color: #9b9fb1; font-size: 11px;
-    }
-    .auth-footnote span { display: inline-flex; align-items: center; gap: 6px; }
-    .auth-footnote svg { color: #858aab; }
-    .auth-footnote span + span::before { content: ""; width: 3px; height: 3px; margin-right: 9px; border-radius: 50%; background: #c5c7d4; }
-
-    @keyframes card-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes float-in { from { opacity: 0; transform: translateY(10px) rotate(-1deg); } to { opacity: 1; transform: translateY(0) rotate(-1deg); } }
-    @media (max-width: 1023px) {
-      .auth-layout { grid-template-columns: minmax(0, 1fr); }
-      .brand-panel { display: none; }
-      .form-panel { min-height: 100vh; padding: 38px 22px; }
-      .auth-card { max-width: 440px; }
-      .mobile-brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 32px; color: #24243b; text-decoration: none; font: 800 19px "Manrope", sans-serif; letter-spacing: -.7px; }
-      .mobile-brand .brand-mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }
-      .mobile-brand .dot { color: var(--dd-violet); }
-    }
-    @media (max-width: 480px) {
-      .form-panel { padding: 27px 18px; align-items: flex-start; }
-      .auth-card { margin: auto 0; }
-      .mobile-brand { margin-bottom: 27px; }
-      .form-heading { margin-bottom: 25px; }
-      #auth-title { font-size: 31px; }
-      #auth-form { gap: 16px; }
-      .auth-footnote { margin-top: 25px; gap: 10px 14px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-    }
-  </style>
 </head>
 <body>
   <section id="auth-screen" class="auth-screen">
     <div class="auth-layout">
 
       <!-- Brand / product preview -->
-      <aside class="brand-panel" aria-label="About DevDocs AI">
+      <aside class="brand-panel" aria-label="About Rezifa AI">
         <div class="brand-grid"></div>
 
-        <a href="/" aria-label="DevDocs AI home" class="brand-logo">
-          <span class="brand-mark" aria-hidden="true">✦</span>
-          <span>devdocs<span class="dot">.ai</span></span>
+        <a href="/" aria-label="Rezifa AI home" class="brand-logo">
+          <img class="brand-mark" src="/static/rezifa-mark.svg" alt="">
+          <span>Rezifa<span class="dot"> AI</span></span>
         </a>
 
         <div class="brand-copy">
@@ -305,13 +70,33 @@
       <!-- Authentication form -->
       <main class="form-panel">
         <div class="auth-card">
-          <a href="/" aria-label="DevDocs AI home" class="mobile-brand">
-            <span class="brand-mark" aria-hidden="true">✦</span>
-            <span>devdocs<span class="dot">.ai</span></span>
+          <a href="/" aria-label="Rezifa AI home" class="mobile-brand">
+            <img class="brand-mark" src="/static/rezifa-mark.svg" alt="">
+            <span>Rezifa<span class="dot"> AI</span></span>
           </a>
 
+          <div class="mobile-showcase" aria-hidden="true">
+            <div class="mobile-showcase-copy">
+              <span class="mobile-showcase-kicker">Your docs, on the go</span>
+              <span class="mobile-showcase-title">Answers that move with you.</span>
+              <span class="mobile-showcase-caption">Ask your knowledge hub from anywhere.</span>
+            </div>
+            <div class="mobile-phone">
+              <div class="mobile-phone-screen">
+                <span class="mobile-phone-camera"></span>
+                <span class="mobile-phone-greeting">Your docs, understood</span>
+                <span class="mobile-phone-question">How do I get started?</span>
+                <span class="mobile-phone-answer">
+                  <span class="mobile-phone-spark">✦</span>
+                  Create a workspace and add your docs.
+                </span>
+                <span class="mobile-phone-source">● &nbsp; product-guide.md</span>
+              </div>
+            </div>
+          </div>
+
           <div class="form-heading">
-            <span class="form-kicker">Welcome to DevDocs AI</span>
+            <span class="form-kicker">Welcome to Rezifa AI</span>
             <h2 id="auth-title">Welcome back</h2>
             <p id="auth-subtitle" class="auth-subtitle">Sign in to pick up where you left off.</p>
           </div>
@@ -362,13 +147,13 @@
             <p id="auth-error" role="alert" class="form-error"></p>
 
             <button id="auth-submit" type="submit">
-              <span>Sign in</span>
+              <span data-auth-submit-label>Sign in</span>
               <span aria-hidden="true">→</span>
             </button>
           </form>
 
           <p class="auth-switch">
-            <span id="auth-switch-copy">New to DevDocs?</span>
+            <span id="auth-switch-copy">New to Rezifa AI?</span>
             <button id="auth-switch" type="button">Create an account</button>
           </p>
 
@@ -387,6 +172,6 @@
     </div>
   </section>
 
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=6" defer></script>
 </body>
 </html>

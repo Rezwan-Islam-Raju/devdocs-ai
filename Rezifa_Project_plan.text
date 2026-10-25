@@ -1,8 +1,8 @@
-# 🤖 DevDocs AI — AI-Powered Developer Knowledge API
+# 🤖 Rezifa AI — AI-Powered Developer Knowledge API
 
 ## 🎯 Project Goal
 
-**DevDocs AI** হবে একটি production-style **AI + RAG Backend API** যেখানে developerরা তাদের PDF, TXT এবং Markdown documentation upload করে সেই documents-এর উপর AI-powered প্রশ্ন করতে পারবে।
+**Rezifa AI** হবে একটি production-style **AI + RAG Backend API** যেখানে developerরা তাদের PDF, TXT এবং Markdown documentation upload করে সেই documents-এর উপর AI-powered প্রশ্ন করতে পারবে।
 
 Project-এর মূল লক্ষ্য:
 
@@ -133,7 +133,7 @@ Free deployment সহজ রাখার জন্য শুরুতে:
 
 # 🧠 Core Concept
 
-DevDocs AI মূলত একটি **RAG system**।
+Rezifa AI মূলত একটি **RAG system**।
 
 RAG = Retrieval-Augmented Generation
 

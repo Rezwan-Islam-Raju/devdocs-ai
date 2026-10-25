@@ -1,8 +1,8 @@
-# 🤖 DevDocs AI — AI-Powered Developer Knowledge API
+# 🤖 Rezifa AI — AI-Powered Developer Knowledge API
 
 An AI-powered developer documentation assistant built with **FastAPI, PostgreSQL, pgvector, and Retrieval-Augmented Generation (RAG)**.
 
-DevDocs AI allows developers to upload PDF, TXT, and Markdown documentation, ask questions about their content, and receive AI-generated answers with relevant source citations.
+Rezifa AI allows developers to upload PDF, TXT, and Markdown documentation, ask questions about their content, and receive AI-generated answers with relevant source citations.
 
 The application uses **Ollama with Qwen3:4B for local development** and **Google Gemini API with `gemini-3.8-flash` as the configured production model**.
 
@@ -35,9 +35,9 @@ The application uses **Ollama with Qwen3:4B for local development** and **Google
 
 Developers often need to search through large technical documentation files to find specific information.
 
-DevDocs AI simplifies this process by allowing developers to organize documents into workspaces and ask questions using natural language.
+Rezifa AI simplifies this process by allowing developers to organize documents into workspaces and ask questions using natural language.
 
-Instead of sending entire documents to a language model, DevDocs AI retrieves relevant text chunks from PostgreSQL using vector similarity search. These chunks provide context for generating relevant answers.
+Instead of sending entire documents to a language model, Rezifa AI retrieves relevant text chunks from PostgreSQL using vector similarity search. These chunks provide context for generating relevant answers.
 
 The API returns both the generated answer and source metadata so users can identify which documents contributed to the response.
 
@@ -54,7 +54,7 @@ The developer asks:
 
 > What is dependency injection in FastAPI?
 
-DevDocs AI retrieves relevant chunks, sends them to the configured AI model, and returns an answer with source references.
+Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and returns an answer with source references.
 
 ---
 
@@ -234,7 +234,7 @@ RAG stands for **Retrieval-Augmented Generation**.
 
 It combines information retrieval with language generation. Instead of relying only on information learned during model training, the application retrieves relevant content from a user's documents.
 
-DevDocs AI has two main processing pipelines.
+Rezifa AI has two main processing pipelines.
 
 ### 1. Document Ingestion Pipeline
 
@@ -413,7 +413,7 @@ Official model documentation: https://ai.google.dev/gemini-api/docs/models
 
 ## 🗄️ Database Design
 
-DevDocs AI uses Supabase PostgreSQL for relational data and pgvector for vector search.
+Rezifa AI uses Supabase PostgreSQL for relational data and pgvector for vector search.
 
 ### 1. Users
 
@@ -617,7 +617,7 @@ The source metadata identifies the retrieved document chunk associated with the 
 The following is a suggested structure. Adjust it to match the actual repository.
 
 ```text
-DevDocs-AI/
+Rezifa-AI/
 │
 ├── app/
 │   ├── core/
@@ -680,7 +680,7 @@ Create a `.env` file in the project root.
 ### Example
 
 ```env
-APP_NAME=DevDocs AI
+APP_NAME=Rezifa AI
 APP_VERSION=1.0.0
 DEBUG=true
 
@@ -808,7 +808,7 @@ python -m uvicorn main:app --reload
 
 Keep the terminal open. FastAPI serves the backend and frontend together at **http://127.0.0.1:8000/**; no separate frontend build or server is needed.
 
-### DevDocs AI web interface
+### Rezifa AI web interface
 
 Open **http://127.0.0.1:8000/** to use the built-in HTML, CSS, and JavaScript interface. Do not open `frontend/index.html` directly as a `file://` URL: the `/static/` assets and backend API are served by FastAPI. Sign in or create an account, create a workspace, then upload PDF, TXT, or Markdown files to ask questions about your documentation.
 
@@ -922,7 +922,7 @@ Free-tier limitations may change over time.
 
 ## 🧪 Testing
 
-DevDocs AI uses Pytest and HTTPX for automated API testing.
+Rezifa AI uses Pytest and HTTPX for automated API testing.
 
 Recommended test cases include:
 
@@ -985,4 +985,4 @@ Add an appropriate open-source license before distributing the project.
 
 ---
 
-**DevDocs AI — Turn your documentation into an AI-powered knowledge base.**
+**Rezifa AI — Turn your documentation into an AI-powered knowledge base.**

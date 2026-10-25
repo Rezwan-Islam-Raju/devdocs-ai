@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Application Config
-    APP_NAME: str = "DevDocs AI"
+    APP_NAME: str = "Rezifa AI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
@@ -38,5 +38,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
 
