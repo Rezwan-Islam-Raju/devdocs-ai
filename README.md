@@ -4,7 +4,7 @@ An AI-powered developer documentation assistant built with **FastAPI, PostgreSQL
 
 Rezifa AI allows developers to upload PDF, TXT, and Markdown documentation, ask questions about their content, and receive AI-generated answers with relevant source citations.
 
-The application uses **Ollama with Qwen3:4B for local development** and **Google Gemini API with `gemini-3.8-flash` as the configured production model**.
+The default chat model is **Google Gemini `gemini-3.5-flash-lite`**. Ollama with Qwen3:4B remains available for local inference.
 
 ---
 
@@ -15,19 +15,17 @@ The application uses **Ollama with Qwen3:4B for local development** and **Google
 * [Technology Stack](#-technology-stack)
 * [System Architecture](#-system-architecture)
 * [How RAG Works](#-how-rag-works)
-* [AI Provider Architecture](#[.gitignore](.gitignore)-ai-provider-architecture)
+* [AI Provider Architecture](#-ai-provider-architecture)
 * [Database Design](#-database-design)
 * [API Endpoints](#-api-endpoints)
 * [Project Structure](#-project-structure)
 * [Environment Variables](#-environment-variables)
 * [Installation](#-installation)
-* [Running the Application](#-running-the-application)
 * [API Documentation](#-api-documentation)
-* [Production Deployment](#-production-deployment)
+* [Deployment Notes](#-deployment-notes)
 * [Security](#-security)
 * [Testing](#-testing)
-* [Future Improvements](#-future-improvements)
-* [License](#-license)
+* [Current Limitations](#-current-limitations)
 
 ---
 
@@ -39,7 +37,8 @@ Rezifa AI simplifies this process by allowing developers to organize documents i
 
 Instead of sending entire documents to a language model, Rezifa AI retrieves relevant text chunks from PostgreSQL using vector similarity search. These chunks provide context for generating relevant answers.
 
-The API returns both the generated answer and source metadata so users can identify which documents contributed to the response.
+Workspace chat returns the generated answer and source metadata so users can
+identify which document chunks were retrieved. General chat returns no sources.
 
 ### Example Use Case
 
@@ -63,13 +62,10 @@ Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and 
 ### 🔐 Authentication
 
 * User registration and login
-* Secure password hashing
-* JWT-based authentication
-* Access token management
-* Refresh token support, if enabled
-* Current authenticated user
-* Role-based authorization
-* Active and inactive account management
+* Password hashing with bcrypt
+* Bearer access tokens signed as JWTs
+* Current-user profile, profile update, password change, and account deletion
+* Active-account check during login
 
 ### 👤 User Management
 
@@ -85,18 +81,15 @@ Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and 
 * Retrieve workspace details
 * Update workspace information
 * Delete workspaces
-* Restrict access to workspace owners
-* Support administrative access
+* Restrict workspace operations to the owner
 
 ### 📄 Document Management
 
-* Upload PDF, TXT, and Markdown files
-* Validate supported file types
-* Validate file sizes
-* Store uploaded files in Supabase Storage
-* Track document processing status
-* Retrieve document metadata
-* List and delete documents
+* Upload PDF, TXT, and Markdown files to Supabase Storage
+* List documents in a workspace owned by the current user
+* Track processing status (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`)
+* Store file metadata and extracted chunks in PostgreSQL
+* No document-listing-by-ID or document-delete API is currently exposed
 
 ### 🧠 RAG Pipeline
 
@@ -105,16 +98,17 @@ Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and 
 * Split text into smaller chunks
 * Generate embeddings
 * Store embeddings using pgvector
-* Retrieve relevant chunks through vector similarity search
-* Generate context-aware answers
+* Retrieve up to five nearby chunks from the selected workspace
+* Generate context-aware answers when a workspace is provided
+* Answer general chat requests without document retrieval
 
 ### 🤖 AI Integration
 
 * Ollama for local development
 * Qwen3:4B local language model
-* Google Gemini API for production
-* Configurable AI provider
-* Separate LLM and embedding services
+* Google Gemini and OpenRouter for hosted inference
+* Selectable Gemini, OpenRouter, or Ollama chat provider
+* Gemini embeddings (`gemini-embedding-001`, 1536 dimensions) are used regardless of chat provider
 * Context-aware question answering
 
 ### 📚 Source Citations
@@ -124,14 +118,12 @@ Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and 
 * Identify source chunk indexes
 * Associate retrieved context with generated answers
 
-### ☁️ Deployment
+### ☁️ Storage and Configuration
 
 * Supabase PostgreSQL
 * pgvector vector search
 * Supabase Storage
-* Render deployment
 * Environment-based configuration
-* Docker support for local development
 
 ---
 
@@ -147,84 +139,39 @@ Rezifa AI retrieves relevant chunks, sends them to the configured AI model, and 
 | Database                    | Supabase PostgreSQL                                       |
 | Vector Search               | pgvector                                                  |
 | Authentication              | JWT                                                       |
-| Password Hashing            | bcrypt or another supported secure hashing implementation |
+| Password Hashing             | bcrypt                                                    |
 | Local AI Runtime            | Ollama                                                    |
-| Local AI Model              | Qwen3:4B                                                  |
-| Production AI Provider      | Google Gemini API                                         |
-| Configured Production Model | `gemini-3.8-flash`                                        |
-| Embeddings                  | Configurable embedding model                              |
+| Example Local AI Model      | `qwen3:4b`                                                |
+| Hosted AI Providers         | Google Gemini API, OpenRouter                             |
+| Default Chat Model          | `gemini-3.5-flash-lite`                                   |
+| Embedding Model             | `gemini-embedding-001` (1536 dimensions)                 |
 | File Storage                | Supabase Storage                                          |
-| Testing                     | Pytest, HTTPX                                             |
-| Containerization            | Docker, Docker Compose                                    |
+| Tests                       | Python `unittest`                                         |
 | Version Control             | Git, GitHub                                               |
-| Deployment                  | Render                                                    |
 
-**Model configuration note:** `gemini-3.8-flash` is the requested model identifier. Verify its exact ID and availability in the official Gemini API model documentation before deploying.
+The backend chat default is set by `DEFAULT_MODEL_PROVIDER` and `DEFAULT_MODEL`.
+`GEMINI_MODEL` supplies the Gemini model when Gemini is selected without a
+different model override.
 
 ---
 
 ## 🏗️ System Architecture
 
-### Local Development Architecture
+### Application Components
 
 ```text
-                       User
-                         |
-                         v
-                 FastAPI Application
-                         |
-             +-----------+-----------+
-             |           |           |
-             v           v           v
-       Authentication  RAG Service  Document Service
-             |           |           |
-             |           v           |
-             |    Embedding Service  |
-             |           |           |
-             |           v           |
-             |    PostgreSQL         |
-             |    + pgvector         |
-             |                       |
-             v                       v
-         JWT System           Supabase Storage
-                         |
-                         v
-                  Ollama Provider
-                         |
-                         v
-                      Qwen3:4B
+User
+ |
+ v
+FastAPI
+ ├── Authentication and workspaces ─────────────> PostgreSQL
+ ├── Upload ──> Supabase Storage
+ │              └── Background processing ──> Gemini embeddings ──> PostgreSQL/pgvector
+ └── Chat ──> Gemini / OpenRouter / Ollama
 ```
 
-### Production Architecture
-
-```text
-                         User
-                           |
-                           v
-                    Render Deployment
-                           |
-                           v
-                    FastAPI Application
-                           |
-               +-----------+-----------+
-               |           |           |
-               v           v           v
-          Supabase      Supabase     Gemini API
-         PostgreSQL      Storage       |
-               |                       |
-               v                       v
-            pgvector             AI Generation
-```
-
-### Architectural Principles
-
-* Keep business logic outside API routers.
-* Separate document processing from AI generation.
-* Use a dedicated embedding service.
-* Keep AI provider integrations modular.
-* Enforce authentication and workspace ownership.
-* Store uploaded files outside the application filesystem.
-* Keep secrets in environment variables.
+Document processing is queued with FastAPI `BackgroundTasks` in the running
+application process; it is not a separate durable worker queue.
 
 ---
 
@@ -272,7 +219,11 @@ Update Document Status
 COMPLETED
 ```
 
-If processing fails, the document status should be updated to `FAILED` whenever possible.
+Text files are decoded as UTF-8 (invalid bytes are ignored), PDFs are read
+with `pypdf`, and text is split into 500-word chunks with 50-word overlap.
+Each chunk is embedded with Gemini before the document status becomes
+`COMPLETED`. Processing uses in-process FastAPI background tasks. If processing
+fails, the status is set to `FAILED` when possible.
 
 ### 2. Question-Answering Pipeline
 
@@ -283,16 +234,16 @@ User Question
 Validate User Authentication
       |
       v
+If workspace_id is provided:
+      |
+      v
 Validate Workspace Ownership
       |
       v
-Generate Question Embedding
+Create Gemini Question Embedding
       |
       v
-Vector Similarity Search
-      |
-      v
-Retrieve Relevant Chunks
+Search up to 5 chunks (distance <= 0.45)
       |
       v
 Construct Contextual Prompt
@@ -351,7 +302,8 @@ The actual answer depends on the retrieved documentation.
 
 AI provider integrations are separated from API routers and business logic.
 
-This architecture makes it possible to configure different providers for local development and production.
+Chat requests can select a provider and model. Gemini is the default in the
+example configuration; OpenRouter and Ollama are also supported.
 
 ### Architecture
 
@@ -361,14 +313,13 @@ This architecture makes it possible to configure different providers for local d
                        v
                    LLMService
                        |
-              +--------+--------+
-              |                 |
-              v                 v
-        OllamaProvider     GeminiProvider
-              |                 |
-              v                 v
-           Qwen3:4B       Gemini API
-                         gemini-3.8-flash
+              +----------+----------+
+              |          |          |
+              v          v          v
+           Ollama     Gemini    OpenRouter
+              |          |          |
+              v          +-----+----+
+           Qwen3:4B       Hosted models
 ```
 
 ### 🏠 Local Development
@@ -376,36 +327,32 @@ This architecture makes it possible to configure different providers for local d
 The application uses Ollama to run Qwen3:4B locally.
 
 ```env
-LLM_PROVIDER=ollama
+DEFAULT_MODEL_PROVIDER=ollama
+DEFAULT_MODEL=qwen3:4b
 
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3:4b
 ```
 
-### ☁️ Production
+### ☁️ Hosted providers
 
-The application is configured to use the Gemini API.
+Use Gemini or OpenRouter for hosted chat. Gemini is also required for document
+embeddings and workspace retrieval.
 
 ```env
 LLM_PROVIDER=gemini
 
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.8-flash or gemini-3.5-flash-lite
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
-
-### Provider Benefits
-
-* Switch providers through configuration.
-* Keep provider-specific code out of routers.
-* Simplify local development.
-* Use hosted inference in production.
-* Make testing and maintenance easier.
 
 **Important:** The LLM and embedding models serve different purposes.
 
-The LLM generates answers, while the embedding model converts text into vectors for semantic search.
+The selected chat LLM generates answers. Gemini creates 1536-dimensional
+embeddings for document chunks and questions, regardless of the chat provider.
 
-Changing the LLM does not automatically change the embedding model. Document chunks and user questions must use compatible embedding models with matching vector dimensions.
+Changing the chat provider does not change the embedding model. Existing
+database vector dimensions must match the embedding vectors.
 
 Official model documentation: https://ai.google.dev/gemini-api/docs/models
 
@@ -451,9 +398,9 @@ Stores metadata about uploaded files.
 | ------------ | ---------------------------- |
 | id           | Primary key                  |
 | workspace_id | Associated workspace         |
-| filename     | Original filename            |
-| file_type    | File format                  |
-| file_size    | File size                    |
+| file_name    | Uploaded filename            |
+| file_type    | `pdf`, `txt`, or `md`         |
+| file_size    | Uploaded size in bytes       |
 | storage_path | Supabase Storage object path |
 | status       | Processing status            |
 | created_at   | Creation timestamp           |
@@ -519,9 +466,12 @@ The `<=>` operator calculates cosine distance.
 
 Lower distances generally indicate more similar vectors.
 
-In the actual application, vector searches should also restrict results to the authorized workspace.
+The application restricts the search to the requested workspace and returns
+only chunks at or below a cosine distance of `0.45`.
 
-The vector column dimensions must match the selected embedding model.
+The current model and embedding service use 1536-dimensional vectors from
+Gemini. Review the Alembic migration history against the target database
+before applying schema changes.
 
 ---
 
@@ -535,44 +485,45 @@ The API follows a versioned route structure using `/api/v1`.
 | ------ | ----------------------- | ------------------------------------------------------ |
 | POST   | `/api/v1/auth/register` | Register a new user                                    |
 | POST   | `/api/v1/auth/login`    | Authenticate a user                                    |
-| POST   | `/api/v1/auth/refresh`  | Refresh an access token, if implemented                |
-| GET    | `/api/v1/auth/me`       | Retrieve the current user                              |
-| POST   | `/api/v1/auth/logout`   | Log out or revoke a token, depending on implementation |
-
-### Users
-
-| Method | Endpoint           | Description                         |
-| ------ | ------------------ | ----------------------------------- |
-| GET    | `/api/v1/users/me` | Retrieve the current user's profile |
-| PATCH  | `/api/v1/users/me` | Update the current user's profile   |
-| DELETE | `/api/v1/users/me` | Delete the current user's account   |
+| GET    | `/api/v1/auth/`         | Retrieve the current user                              |
+| PUT    | `/api/v1/auth/`         | Update the current user's name, email, and password     |
+| PATCH  | `/api/v1/auth/`         | Change the current user's password                     |
+| POST   | `/api/v1/auth/logout`   | Return a logout message; the JWT is not revoked         |
+| DELETE | `/api/v1/auth/`         | Delete the current user's account                      |
 
 ### Workspaces
 
 | Method | Endpoint                            | Description                |
 | ------ | ----------------------------------- | -------------------------- |
-| POST   | `/api/v1/workspaces`                | Create a workspace         |
-| GET    | `/api/v1/workspaces`                | List accessible workspaces |
+| POST   | `/api/v1/workspaces/`               | Create a workspace         |
+| GET    | `/api/v1/workspaces/`               | List the current user's workspaces |
 | GET    | `/api/v1/workspaces/{workspace_id}` | Retrieve workspace details |
 | PATCH  | `/api/v1/workspaces/{workspace_id}` | Update a workspace         |
 | DELETE | `/api/v1/workspaces/{workspace_id}` | Delete a workspace         |
 
 ### Documents
 
-| Method | Endpoint                          | Description                               |
-| ------ | --------------------------------- | ----------------------------------------- |
-| POST   | `/api/v1/documents`               | Upload a document                         |
-| GET    | `/api/v1/documents`               | List accessible documents                 |
-| GET    | `/api/v1/documents/{document_id}` | Retrieve document details                 |
-| DELETE | `/api/v1/documents/{document_id}` | Delete a document and its associated data |
+| Method | Endpoint                    | Description |
+| ------ | --------------------------- | ----------- |
+| POST   | `/api/v1/documents/upload`  | Upload PDF, TXT, or Markdown as multipart form data |
+| GET    | `/api/v1/documents/`        | List documents in an owned workspace (`workspace_id` query parameter) |
 
 ### AI Chat
 
 | Method | Endpoint       | Description                                 |
 | ------ | -------------- | ------------------------------------------- |
 | POST   | `/api/v1/chat` | Ask questions about workspace documentation |
+| GET    | `/api/v1/models` | List available Gemini, OpenRouter, and Ollama models |
 
-These endpoints describe the intended API design. Verify each route against the actual implementation before treating it as available.
+### Health
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET    | `/health` | Check that the API process responds |
+| GET    | `/health/db` | Run a database `SELECT 1` check |
+
+Workspace collection routes include a trailing slash; workspace item routes
+use `/api/v1/workspaces/{workspace_id}`.
 
 ---
 
@@ -589,9 +540,22 @@ Authorization: Bearer <access_token>
 ```json
 {
   "workspace_id": 1,
-  "question": "What is dependency injection in FastAPI?"
+  "question": "What is dependency injection in FastAPI?",
+  "provider": "openrouter",
+  "model": "openrouter/free"
 }
 ```
+
+Both `provider` and `model` are optional. Omitting them uses the configured
+backend defaults. Without `workspace_id`, chat uses general knowledge and
+returns an empty `sources` list. With a workspace, the API verifies ownership,
+creates a Gemini question embedding, and searches up to five chunks with a
+cosine distance of at most `0.45`.
+
+The model catalog filters OpenRouter models to those reporting zero input and
+output prices; pricing, account access, and quotas can change. Gemini models
+are listed as free only when configured in `GEMINI_FREE_MODELS`. Ollama
+models run locally. Provider rate-limit responses may include a retry hint.
 
 ### Response
 
@@ -601,7 +565,7 @@ Authorization: Bearer <access_token>
   "sources": [
     {
       "document_id": 1,
-      "filename": "fastapi.pdf",
+      "file_name": "fastapi.pdf",
       "chunk_index": 12
     }
   ]
@@ -614,61 +578,30 @@ The source metadata identifies the retrieved document chunk associated with the 
 
 ## 📂 Project Structure
 
-The following is a suggested structure. Adjust it to match the actual repository.
+Main application files:
 
 ```text
-Rezifa-AI/
-│
+devdocs-ai/
 ├── app/
-│   ├── core/
-│   │   ├── config.py
-│   │   └── security.py
-│   │
-│   ├── database/
-│   │   └── session.py
-│   │
-│   ├── models/
-│   │   ├── user_model.py
-│   │   ├── workspace_model.py
-│   │   ├── document_model.py
-│   │   └── document_chunk_model.py
-│   │
-│   ├── schemas/
-│   │   ├── user_schema.py
-│   │   ├── workspace_schema.py
-│   │   ├── document_schema.py
-│   │   └── chat_schema.py
-│   │
-│   ├── routers/
-│   │   ├── auth_router.py
-│   │   ├── user_router.py
-│   │   ├── workspace_router.py
-│   │   ├── document_router.py
-│   │   └── chat_router.py
-│   │
-│   ├── services/
-│   │   ├── user_service.py
-│   │   ├── workspace_service.py
-│   │   ├── document_service.py
-│   │   ├── embedding_service.py
-│   │   ├── rag_service.py
-│   │   └── llm_service.py
-│   │
-│   ├── providers/
-│   │   ├── ollama_provider.py
-│   │   └── gemini_provider.py
-│   │
-│   └── dependencies/
-│       └── auth_dependency.py
-│
-├── alembic/
-├── tests/
+│   ├── api/v1/
+│   │   ├── ai/ai_chat_router.py
+│   │   ├── documents/documents_router.py
+│   │   ├── model/model_router.py
+│   │   ├── users/users_router.py
+│   │   └── workspaces/workspace_router.py
+│   ├── core/                 # Settings and JWT/password helpers
+│   ├── database/             # Async SQLAlchemy session and engine
+│   ├── dependencies/         # Bearer-token dependency
+│   ├── models/               # User, workspace, document, and chunk models
+│   ├── schemas/              # Pydantic request/response schemas
+│   └── services/             # User, workspace, document, embedding, and LLM logic
+├── alembic/                  # Database migration configuration and revisions
+├── frontend/                 # Static HTML, CSS, JavaScript, and logo
+├── test/                     # Focused provider-selection tests
 ├── .env.example
-├── .gitignore
 ├── alembic.ini
-├── main.py
-├── requirements.txt
-└── README.md
+├── main.py                   # FastAPI application and static frontend mount
+└── requirements.txt
 ```
 
 ---
@@ -682,28 +615,36 @@ Create a `.env` file in the project root.
 ```env
 APP_NAME=Rezifa AI
 APP_VERSION=1.0.0
-DEBUG=true
+DEBUG=True
 
-DATABASE_URL=your_database_connection_string
-
-JWT_SECRET_KEY=your_secret_key
-JWT_ALGORITHM=HS256
+DATABASE_URL=postgresql+asyncpg://postgres:<password>@<host>:5432/postgres
+SECRET_KEY=<generate-a-long-random-secret>
+ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_HOURS=8
 
-LLM_PROVIDER=ollama
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_KEY=<supabase-service-role-key>
+SUPABASE_BUCKET_NAME=devdocs-documents
 
-OLLAMA_BASE_URL=http://localhost:11434
+GEMINI_API_KEY=<gemini-api-key>
+GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_FREE_MODELS=
+
+LLM_PROVIDER=gemini
+DEFAULT_MODEL_PROVIDER=gemini
+DEFAULT_MODEL=gemini-3.5-flash-lite
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3:4b
 
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.8-flash
-
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_supabase_key
-SUPABASE_STORAGE_BUCKET=documents
+OPENROUTER_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 ```
 
-Use only the variables required by your implementation.
+`DATABASE_URL`, `SECRET_KEY`, `SUPABASE_URL`, and `SUPABASE_KEY` are required
+settings. A Gemini API key is needed for document embeddings and Gemini chat.
+Ollama and OpenRouter credentials are only needed when those chat providers
+are used. Keep the Supabase service-role key on the server; never expose it in
+frontend code.
 
 For production, configure environment variables through the hosting platform.
 
@@ -717,11 +658,10 @@ Never commit real API keys, database credentials, or JWT secrets to GitHub.
 
 Install:
 
-* Python
-* Git
-* Access to a Supabase PostgreSQL database
-* Ollama for local model inference
-* A Gemini API key for production integration
+* Python and Git
+* Supabase PostgreSQL with pgvector and a configured Storage bucket
+* A Gemini API key (embeddings use Gemini even when chat uses another provider)
+* Ollama only if using local chat; OpenRouter API key only if using OpenRouter
 
 ### 1. Clone the Repository
 
@@ -764,19 +704,38 @@ In Windows PowerShell, copy the example file only if you do not already have `.e
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Set your Supabase PostgreSQL `DATABASE_URL` using the `postgresql+asyncpg://` driver, a new random `SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`, and `GEMINI_API_KEY`. URL-encode special characters in the database password. Create the configured storage bucket (`devdocs-documents`) in Supabase, or update `SUPABASE_BUCKET_NAME`.
+Set `DATABASE_URL`, `SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`, and
+`GEMINI_API_KEY` in `.env`. Use a PostgreSQL connection string; the application
+converts its driver to `postgresql+asyncpg`. URL-encode special characters in
+the database password. Create the Storage bucket named by
+`SUPABASE_BUCKET_NAME` (defaults to `devdocs-documents`).
 
-Gemini embeddings are used for document processing and chat retrieval even if `LLM_PROVIDER=ollama`. Choose `LLM_PROVIDER=ollama` to generate answers with local Ollama, or `LLM_PROVIDER=gemini` to use Gemini for answers too. Never commit `.env` or put real credentials in source files.
+Gemini embeddings are used for document ingestion and workspace chat,
+regardless of the selected chat provider. Configure `DEFAULT_MODEL_PROVIDER`
+and `DEFAULT_MODEL` to choose the backend default. `GET /api/v1/models` returns
+the provider catalog. OpenRouter zero-price listings and Gemini's optional
+`GEMINI_FREE_MODELS` allowlist are indicators only; check current account
+pricing and quota with each provider. Never commit `.env` or put real
+credentials in source files.
 
 ### 5. Enable pgvector
 
-Open the Supabase SQL Editor and run:
+Alembic includes a migration that enables pgvector. If the database role
+cannot create the extension, enable it in Supabase before running migrations:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Confirm that your database schema, vector dimensions, and SQLAlchemy models are configured correctly.
+The SQLAlchemy model and Gemini embedding service expect 1536 dimensions.
+There is a migration mismatch to resolve before using Alembic on a fresh
+database: `ed264cf862b7` adds a 768-dimensional vector column, while the
+current model and later migration expect 1536 dimensions; the later migration
+does not convert the vector type. Update/verify the migration chain and
+database schema before running `alembic upgrade head`.
+
+On startup, `main.py` also calls SQLAlchemy `create_all` for missing tables.
+That does not upgrade existing tables; use Alembic for schema changes.
 
 ### 6. Run Database Migrations
 
@@ -784,7 +743,7 @@ Confirm that your database schema, vector dimensions, and SQLAlchemy models are 
 alembic upgrade head
 ```
 
-### 7. Start Ollama (only when `LLM_PROVIDER=ollama`)
+### 7. Start Ollama (only when using Ollama chat)
 
 Download the local model:
 
@@ -832,48 +791,26 @@ Use Swagger UI to explore endpoints, inspect request and response schemas, and t
 
 ---
 
-## ☁️ Production Deployment
+## ☁️ Deployment Notes
 
-The production architecture uses managed services to reduce infrastructure requirements.
+The repository contains a FastAPI application, Alembic migrations, and a
+frontend served by FastAPI. It does not include a hosting-provider deployment
+configuration. To deploy, provide the required environment variables, install
+the requirements, apply and verify database migrations, and run an ASGI server
+such as Uvicorn.
 
-### Deployment Services
+Before exposing an instance publicly:
 
-| Service             | Responsibility                                      |
-| ------------------- | --------------------------------------------------- |
-| Render              | FastAPI hosting                                     |
-| Supabase PostgreSQL | Relational database                                 |
-| pgvector            | Vector similarity search                            |
-| Supabase Storage    | Uploaded document storage                           |
-| Gemini API          | AI answer generation and, if configured, embeddings |
-
-### Production Environment
-
-Configure the required environment variables in Render.
-
-Example:
-
-```env
-DEBUG=false
-LLM_PROVIDER=gemini
-GEMINI_API_KEY=your_production_api_key
-GEMINI_MODEL=gemini-3.8-flash
-DATABASE_URL=your_production_database_url
-```
-
-Configure JWT secrets, Supabase credentials, storage settings, and the embedding model as required by the application.
-
-### Deployment Considerations
-
-* Do not run Ollama inside a small Render free-tier instance.
-* Store documents in object storage instead of the ephemeral application filesystem.
-* Run database migrations as part of the deployment process.
-* Handle database connection limits.
-* Handle Gemini API errors and rate limits.
-* Enforce document upload limits.
-* Avoid exposing secrets in logs or error responses.
-* Verify free-tier quotas and availability before deployment.
-
-Free-tier limitations may change over time.
+* Restrict CORS origins in `main.py`; the current configuration allows all
+  origins.
+* Use HTTPS and protect all server-side secrets.
+* Set upload size limits at the application and/or reverse-proxy layer; the
+  current upload route only checks the filename extension.
+* Use a durable worker for document processing if tasks must survive process
+  restarts; processing currently uses in-process FastAPI background tasks.
+* Review database migrations and pgvector dimensions against the target
+  database.
+* Verify Gemini/OpenRouter pricing, availability, and quotas.
 
 ---
 
@@ -884,7 +821,8 @@ Free-tier limitations may change over time.
 * Hash passwords before storing them.
 * Validate JWT signatures and expiration.
 * Reject invalid or expired tokens.
-* Check account status.
+* Login rejects inactive accounts; the bearer-token dependency validates the
+  token but does not recheck account status on each request.
 * Protect private endpoints with authentication dependencies.
 
 ### Authorization
@@ -892,15 +830,17 @@ Free-tier limitations may change over time.
 * Verify workspace ownership before retrieving documents.
 * Restrict vector searches to the authorized workspace.
 * Prevent cross-user access to documents and chunks.
-* Protect administrative operations with role checks.
+* The current API does not expose separate administrative operations.
 
 ### File Upload Security
 
-* Validate file extensions and file sizes.
-* Do not trust user-supplied filenames.
-* Use safe storage object paths.
-* Handle malformed files safely.
-* Clean up stored files and associated database records during deletion.
+* The upload route allows only `.pdf`, `.txt`, and `.md` filename extensions.
+* It currently has no application-level upload-size limit and uses the
+  uploaded filename in the Supabase Storage path; review these behaviors
+  before public deployment.
+* Document processing errors are logged and the document status is set to
+  `FAILED` when possible.
+* There is currently no document-delete API endpoint.
 
 ### AI Security
 
@@ -917,71 +857,45 @@ Free-tier limitations may change over time.
 * Protect database connection strings.
 * Use a strong JWT secret.
 * Never expose a Supabase service-role key to public clients.
+* The frontend stores its bearer token in browser `localStorage`; account for
+  the associated XSS risk when deploying.
+* Logout returns a message but does not revoke an issued JWT. Tokens remain
+  usable until expiration.
 
 ---
 
 ## 🧪 Testing
 
-Rezifa AI uses Pytest and HTTPX for automated API testing.
-
-Recommended test cases include:
-
-* User registration
-* Login and authentication
-* Invalid and expired JWTs
-* Workspace CRUD operations
-* Workspace ownership checks
-* Document upload validation
-* Document processing success and failure
-* Embedding generation
-* Vector similarity search
-* AI chat responses
-* Source citation metadata
-* Cross-workspace access prevention
-* Document deletion
-* Account deletion
+The current focused test suite uses Python's standard-library `unittest` and
+covers provider selection, model catalog filtering, and LLM response/error
+handling. It does not currently provide full database or API integration
+coverage.
 
 Run tests with:
 
-```bash
-pytest
+```powershell
+python -m unittest discover -s test -p "test_*.py"
 ```
 
-Mock external AI services where appropriate to avoid unnecessary API usage and make tests more predictable.
+The tests mock provider calls and do not require live Gemini, OpenRouter, or
+Ollama requests.
 
 ---
 
-## 🔮 Future Improvements
+## ⚠️ Current Limitations
 
-Potential future enhancements include:
-
-* Celery and Redis for background processing
-* Streaming AI responses
-* Conversation history
-* Hybrid keyword and vector search
-* Retrieval reranking
-* Improved chunking strategies
-* Document reprocessing
-* Usage tracking and rate limiting
-* More comprehensive integration tests
-* Docker-based production deployment
-* Advanced observability and monitoring
-
-These are optional extensions for future versions.
-
----
-
-## 📌 Project Status
-
-**Development in progress.**
-
-The README describes the intended architecture and feature set. Actual API availability depends on the implementation and testing status of each feature.
-
----
-
-## 📄 License
-
-Add an appropriate open-source license before distributing the project.
+* The project is in development; tests currently focus on LLM provider
+  selection and response handling, not end-to-end database workflows.
+* The document upload endpoint has no application-level size limit.
+* Document processing runs as an in-process background task and is not
+  persisted across process restarts.
+* There is no document-delete API; file-size policy and Supabase Storage
+  cleanup need attention before production use.
+* Account/workspace deletion does not explicitly remove matching files from
+  Supabase Storage, so orphaned objects may remain.
+* CORS currently allows all origins and should be restricted for deployment.
+* Logout does not revoke the token; it remains valid until its expiry.
+* No `LICENSE` file is currently included in the repository.
 
 ---
 

@@ -1,3 +1,5 @@
+import math
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,7 +9,7 @@ from app.dependencies.auth_dependecy import require_user_id
 from app.models.workspace_model import Workspace
 from app.models.document_model import Document, DocumentChunk
 from app.schemas.chat_schema import ChatRequest, ChatResponse, ChatSource
-from app.services.llm_service import llm_service
+from app.services.llm_service import LLMProviderError, llm_service
 from app.services.embedding_service import embedding_service
 
 
@@ -72,10 +74,28 @@ async def ai_chat(
 
     #  No workspace: use general AI chat
     if chat_in.workspace_id is None:
-        answer = await llm_service.generate_rag_answer(
-            question=question,
-            contexts=[]
-        )
+        try:
+            answer = await llm_service.generate_rag_answer(
+                question=question,
+                contexts=[],
+                provider=chat_in.provider,
+                model=chat_in.model,
+            )
+        except LLMProviderError as exc:
+            headers = (
+                {
+                    "Retry-After": str(
+                        max(1, math.ceil(exc.retry_after_seconds))
+                    )
+                }
+                if exc.retry_after_seconds is not None
+                else None
+            )
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=exc.message,
+                headers=headers,
+            ) from exc
 
         return ChatResponse(
             answer=answer,
@@ -148,7 +168,7 @@ async def ai_chat(
     contexts = []
     sources = []
 
-    for chunk, file_name, _distance in relevant_rows:
+    for chunk, file_name, _ in relevant_rows:
         contexts.append(chunk.content)
 
         sources.append(
@@ -160,10 +180,28 @@ async def ai_chat(
         )
 
     #  Generate answer with retrieved context
-    answer = await llm_service.generate_rag_answer(
-        question=question,
-        contexts=contexts
-    )
+    try:
+        answer = await llm_service.generate_rag_answer(
+            question=question,
+            contexts=contexts,
+            provider=chat_in.provider,
+            model=chat_in.model,
+        )
+    except LLMProviderError as exc:
+        headers = (
+            {
+                "Retry-After": str(
+                    max(1, math.ceil(exc.retry_after_seconds))
+                )
+            }
+            if exc.retry_after_seconds is not None
+            else None
+        )
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.message,
+            headers=headers,
+        ) from exc
 
     return ChatResponse(
         answer=answer,

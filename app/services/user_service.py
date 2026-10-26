@@ -1,13 +1,10 @@
 import datetime
 
 from fastapi import HTTPException, status
-from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.functions import user
 
-from app import db
 from app.core.security import (
     hash_password,
     verify_password,
@@ -145,7 +142,7 @@ async def get_current_service(
 async def change_password_service(
     db: AsyncSession,
     user_id: int,
-    request:ChangePasswordRequest
+    request: ChangePasswordRequest
 ):
 
     result = await db.execute(select(User).where(User.id == user_id))
@@ -160,32 +157,32 @@ async def change_password_service(
 
     if request.new_password != request.confirm_password:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password and confirm password do not match"
         )
 
     if not verify_password(request.old_password, user.password_hash):
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Old password is incorrect"
         )
 
-    # check new password is different
-
     if request.old_password == request.new_password:
         raise HTTPException(
-            status_code=200,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different"
         )
 
-
-    # user password hash
+    password_bytes = request.new_password.encode("utf-8")
+    if len(password_bytes) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must not exceed 72 UTF-8 bytes"
+        )
 
     user.password_hash = hash_password(request.new_password)
+    user.updated_at = datetime.datetime.now(datetime.timezone.utc)
 
-    user.updated_at = datetime.datetime.now()
-
-    # save everything
     await db.commit()
 
     return ChangePasswordResponse(
@@ -210,23 +207,49 @@ async def logout_service(
         message="logout successfully"
     )
 
-async def user_update_all_service (
-        db:AsyncSession,user_id:
-        int,request:UserUpdateRequest
+async def user_update_all_service(
+        db: AsyncSession,
+        user_id: int,
+        request: UserUpdateRequest
 ):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-      raise HTTPException(
-          status_code=status.HTTP_404_NOT_FOUND,
-          detail="User not found"
-      )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    new_name = request.name.strip() if request.name else user.name
+    new_email = str(request.email).lower().strip() if request.email else user.email
 
-    user.name = request.name
-    user.email = request.email
-    user.password_hash = request.password
-    user.updated_at = datetime.datetime.now()
+    if not new_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Name cannot be empty"
+        )
+
+    if new_email != user.email:
+        existing = await db.execute(select(User).where(User.email == new_email))
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered"
+            )
+
+    user.name = new_name
+    user.email = new_email
+
+    if request.password:
+        password_bytes = request.password.encode("utf-8")
+        if len(password_bytes) > 72:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must not exceed 72 UTF-8 bytes"
+            )
+        user.password_hash = hash_password(request.password)
+
+    user.updated_at = datetime.datetime.now(datetime.timezone.utc)
 
     await db.commit()
 

@@ -3,6 +3,8 @@
 
   const API = "/api/v1";
   const TOKEN_KEY = "devdocs_token";
+  const MODEL_KEY = "rezifa_selected_model";
+  const MODEL_COOLDOWNS_KEY = "rezifa_model_cooldowns";
 
   const authScreen = document.getElementById("auth-screen");
   const authForm = document.getElementById("auth-form");
@@ -14,7 +16,7 @@
   const authError = document.getElementById("auth-error");
   const strengthWrap = document.getElementById("strength-wrap");
   const strengthLabel = document.getElementById("strength-label");
-  const passwordToggle = document.getElementById("toggle-password");
+  const passwordToggle = document.getElementById("toggle-password")
 
   const state = {
     token: localStorage.getItem(TOKEN_KEY),
@@ -23,6 +25,11 @@
     documents: [],
     activeWorkspaceId: null,
     registering: false,
+    models: [],
+    selectedModel: localStorage.getItem(MODEL_KEY),
+    selectedProvider: null,
+    modelCooldowns: {},
+    cooldownTimer: null
   };
 
   // --------------------------------------------------
@@ -38,8 +45,8 @@
           "<": "&lt;",
           ">": "&gt;",
           '"': "&quot;",
-          "'": "&#39;",
-        }[character];
+          "'": "&#39;"
+        }[character]
       }
     );
   }
@@ -49,7 +56,7 @@
     const headers = new Headers(settings.headers || {});
 
     if (state.token) {
-      headers.set("Authorization", "Bearer " + state.token);
+      headers.set("Authorization", "Bearer " + state.token)
     }
 
     if (settings.body && !(settings.body instanceof FormData)) {
@@ -62,11 +69,11 @@
       response = await fetch(API + path, {
         ...settings,
         headers: headers,
-      });
+      })
     } catch (error) {
       throw new Error(
         "Cannot reach the API. Check that the FastAPI server is running."
-      );
+      )
     }
 
     const contentType = response.headers.get("content-type") || "";
@@ -92,6 +99,10 @@
 
       const error = new Error(message);
       error.status = response.status;
+      const retryAfter = Number(response.headers.get("retry-after"));
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        error.retryAfterSeconds = retryAfter;
+      }
 
       if (response.status === 401 && state.token) {
         clearSession();
@@ -110,7 +121,7 @@
     state.documents = [];
     state.activeWorkspaceId = null;
 
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY)
   }
 
   // --------------------------------------------------
@@ -206,7 +217,7 @@
   });
 
   authSwitch.addEventListener("click", function () {
-    setAuthMode(!state.registering);
+    setAuthMode(!state.registering)
   });
 
   authForm.addEventListener("submit", async function (event) {
@@ -243,7 +254,7 @@
         method: "POST",
         body: JSON.stringify({
           email: email,
-          password: password,
+          password: password
         }),
       });
 
@@ -274,9 +285,8 @@
     }
   });
 
-  // --------------------------------------------------
+ 
   // Dashboard
-  // --------------------------------------------------
 
   function renderDashboard() {
     authScreen.innerHTML = `
@@ -541,6 +551,42 @@
                     General AI is available without a workspace.
                   </div>
 
+                  <div class="dashboard-model-picker">
+                    <div class="dashboard-model-fields">
+                      <div>
+                        <label class="dashboard-field-label" for="chat-provider">
+                          Provider
+                        </label>
+                        <select
+                          id="chat-provider"
+                          class="dashboard-control"
+                          aria-describedby="chat-model-status"
+                        >
+                          <option value="">Loading providers...</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="dashboard-field-label" for="chat-model">
+                          Model
+                        </label>
+                        <select
+                          id="chat-model"
+                          class="dashboard-control"
+                          aria-describedby="chat-model-status"
+                        >
+                          <option value="">Loading models...</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p
+                      id="chat-model-status"
+                      class="dashboard-model-status"
+                      aria-live="polite"
+                    >
+                      Loading models from configured providers...
+                    </p>
+                  </div>
+
                   <div
                     id="chat-messages"
                     class="dashboard-chat-messages"
@@ -616,6 +662,30 @@
       .addEventListener("submit", askQuestion);
 
     document
+      .getElementById("chat-model")
+      .addEventListener("change", function (event) {
+        selectChatModel(event.currentTarget.value);
+        const selected = state.models.find(function (model) {
+          return model.provider === state.selectedProvider &&
+            model.model === event.currentTarget.value;
+        });
+        if (selected) {
+          document.getElementById("chat-model-status").textContent =
+            selected.description ||
+            (selected.free === true
+              ? "Free model. Provider limits may apply."
+              : "Check provider pricing and quota before use.");
+        }
+      });
+
+    document
+      .getElementById("chat-provider")
+      .addEventListener("change", function (event) {
+        state.selectedProvider = event.currentTarget.value || null;
+        renderProviderModels(true);
+      });
+
+    document
       .getElementById("chat-question")
       .addEventListener("input", function (event) {
         const input = event.currentTarget;
@@ -626,13 +696,16 @@
 
     updateChatMode();
 
+    loadAvailableModels().catch(function (error) {
+      showModelCatalogError(error);
+    });
+
     return loadWorkspaces();
   }
 
-  // --------------------------------------------------
+  
   // Workspace management
-  // --------------------------------------------------
-
+  
   async function loadWorkspaces() {
     try {
       state.workspaces = await request("/workspaces/");
@@ -731,6 +804,366 @@
     }
   }
 
+  function modelOptionValue(model) {
+    return JSON.stringify([model.provider, model.model]);
+  }
+
+  function renderModelCatalog(catalog) {
+    const providerSelect = document.getElementById("chat-provider");
+    const status = document.getElementById("chat-model-status");
+
+    if (!providerSelect || !status) return;
+
+    state.models = Array.isArray(catalog.models) ? catalog.models : [];
+    loadModelCooldowns();
+
+    const providerNames = {
+      ollama: "Ollama (local)",
+      gemini: "Google Gemini",
+      openrouter: "OpenRouter",
+    };
+    const providers = Array.from(
+      new Set(
+        state.models
+          .filter(function (model) {
+            return model && model.provider && model.model;
+          })
+          .map(function (model) {
+            return model.provider;
+          })
+      )
+    );
+    const selectedPair = parseSelectedModel(state.selectedModel);
+    const savedModel = selectedPair
+      ? state.models.find(function (model) {
+          return (
+            model.provider === selectedPair.provider &&
+            model.model === selectedPair.model &&
+            (model.available !== false || model.configured_default)
+          );
+        })
+      : null;
+    const defaultModel =
+      savedModel ||
+      state.models.find(function (model) {
+        return model.configured_default;
+      }) ||
+      state.models.find(function (model) {
+        return model.provider === "ollama" && model.available !== false;
+      }) ||
+      state.models.find(function (model) {
+        return model.available !== false;
+      });
+
+    providerSelect.replaceChildren();
+    providers.forEach(function (provider) {
+      const option = document.createElement("option");
+      option.value = provider;
+      option.textContent = providerNames[provider] || provider;
+      providerSelect.append(option);
+    });
+
+    if (defaultModel) {
+      state.selectedProvider = defaultModel.provider;
+      providerSelect.value = state.selectedProvider;
+      providerSelect.disabled = false;
+      renderProviderModels(false, defaultModel.model);
+    } else {
+      state.selectedProvider = null;
+      state.selectedModel = null;
+      localStorage.removeItem(MODEL_KEY);
+      providerSelect.disabled = true;
+      renderProviderModels(false);
+    }
+
+    const providerStatus = Object.entries(catalog.providers || {})
+      .filter(function (entry) {
+        return (
+          entry[1] &&
+          (entry[1].configured === false || entry[1].available === false)
+        );
+      })
+      .map(function (entry) {
+        return entry[1].message;
+      });
+
+    const selectableCount = state.models.filter(function (model) {
+      return (
+        model.free === true ||
+        (model.configured_default && model.free !== true)
+      );
+    }).length;
+    status.textContent = selectableCount
+      ? selectableCount +
+        " model(s) ready. Free-tier access and limits depend on your provider plan." +
+        (providerStatus.length ? " " + providerStatus.join(" ") : "")
+      : providerStatus.join(" ") ||
+        "No models are currently available. Check your provider configuration.";
+    if (
+      Object.keys(state.modelCooldowns).some(function (key) {
+        return Number(state.modelCooldowns[key]) > Date.now();
+      })
+    ) {
+      if (!state.cooldownTimer) {
+        state.cooldownTimer = window.setInterval(updateCooldownStatus, 1000);
+      }
+      updateCooldownStatus();
+    }
+  }
+
+  function parseSelectedModel(value) {
+    if (!value) return null;
+
+    try {
+      const pair = JSON.parse(value);
+      if (
+        Array.isArray(pair) &&
+        typeof pair[0] === "string" &&
+        typeof pair[1] === "string"
+      ) {
+        return { provider: pair[0], model: pair[1] };
+      }
+    } catch (error) {
+      return null;
+    }
+
+    return null;
+  }
+
+  function loadModelCooldowns() {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(MODEL_COOLDOWNS_KEY) || "{}"
+      );
+      state.modelCooldowns =
+        saved && typeof saved === "object" && !Array.isArray(saved)
+          ? saved
+          : {};
+    } catch (error) {
+      state.modelCooldowns = {};
+      localStorage.removeItem(MODEL_COOLDOWNS_KEY);
+    }
+  }
+
+  function modelCooldownUntil(model) {
+    const key = modelOptionValue(model);
+    const resetAt = Number(state.modelCooldowns[key]);
+    if (!Number.isFinite(resetAt) || resetAt <= Date.now()) {
+      if (key in state.modelCooldowns) {
+        delete state.modelCooldowns[key];
+        localStorage.setItem(
+          MODEL_COOLDOWNS_KEY,
+          JSON.stringify(state.modelCooldowns)
+        );
+      }
+      return 0;
+    }
+    return resetAt;
+  }
+
+  function formatResetTime(resetAt) {
+    return new Date(resetAt).toLocaleString();
+  }
+
+  function recordModelCooldown(model, retryAfterSeconds) {
+    const resetAt = Date.now() + retryAfterSeconds * 1000;
+    state.modelCooldowns[modelOptionValue(model)] = resetAt;
+    localStorage.setItem(
+      MODEL_COOLDOWNS_KEY,
+      JSON.stringify(state.modelCooldowns)
+    );
+    renderProviderModels(false);
+    if (!state.cooldownTimer) {
+      state.cooldownTimer = window.setInterval(updateCooldownStatus, 1000);
+    }
+    updateCooldownStatus();
+  }
+
+  function updateCooldownStatus() {
+    const status = document.getElementById("chat-model-status");
+    if (!status) return;
+
+    const now = Date.now();
+    let expired = false;
+    Object.keys(state.modelCooldowns).forEach(function (key) {
+      if (Number(state.modelCooldowns[key]) <= now) {
+        delete state.modelCooldowns[key];
+        expired = true;
+      }
+    });
+    if (expired) {
+      localStorage.setItem(
+        MODEL_COOLDOWNS_KEY,
+        JSON.stringify(state.modelCooldowns)
+      );
+      renderProviderModels(false);
+    }
+
+    const activeCooldown = Object.entries(state.modelCooldowns)
+      .filter(function (entry) {
+        return Number(entry[1]) > now;
+      })
+      .sort(function (left, right) {
+        return Number(left[1]) - Number(right[1]);
+      })[0];
+    if (activeCooldown) {
+      const limitedModel = state.models.find(function (model) {
+        return modelOptionValue(model) === activeCooldown[0];
+      });
+      const secondsLeft = Math.ceil(
+        (Number(activeCooldown[1]) - now) / 1000
+      );
+      status.textContent =
+        (limitedModel ? limitedModel.name || limitedModel.model : "Model") +
+        " reached its usage limit. Available again at " +
+        formatResetTime(Number(activeCooldown[1])) +
+        " (in " +
+        secondsLeft +
+        " seconds). Select another model to continue.";
+      return;
+    }
+
+    if (state.cooldownTimer) {
+      window.clearInterval(state.cooldownTimer);
+      state.cooldownTimer = null;
+    }
+  }
+
+  function renderProviderModels(preferDefault, preferredModel) {
+    const providerSelect = document.getElementById("chat-provider");
+    const modelSelect = document.getElementById("chat-model");
+    const status = document.getElementById("chat-model-status");
+    if (!providerSelect || !modelSelect || !status) return;
+
+    state.selectedProvider = providerSelect.value || state.selectedProvider;
+    const providerModels = state.models.filter(function (model) {
+      return model.provider === state.selectedProvider;
+    });
+
+    modelSelect.replaceChildren();
+    providerModels.forEach(function (model) {
+      const resetAt = modelCooldownUntil(model);
+      const option = document.createElement("option");
+      option.value = model.model;
+      option.textContent =
+        (model.name || model.model) +
+        (resetAt
+          ? " · Limit reached · available " + formatResetTime(resetAt)
+          : model.configured_default && model.free !== true
+          ? " · Backend default · verify free access"
+          : model.configured_default
+            ? " · Backend default · Free"
+          : model.free === true
+            ? " · Free"
+            : model.free === false
+              ? " · Paid"
+              : " · Check plan");
+      option.disabled =
+        (model.available === false && !model.configured_default) ||
+        Boolean(resetAt);
+      modelSelect.append(option);
+    });
+
+    const selectableModels = providerModels.filter(function (model) {
+      return (
+        (model.free === true || model.configured_default) &&
+        (model.available !== false || model.configured_default) &&
+        !modelCooldownUntil(model)
+      );
+    });
+    const preferred = preferredModel
+      ? selectableModels.find(function (model) {
+          return model.model === preferredModel;
+        })
+      : null;
+    const selected =
+      preferred ||
+      (!preferDefault &&
+        selectableModels.find(function (model) {
+          return model.model === modelSelect.value;
+        })) ||
+      selectableModels.find(function (model) {
+        return model.configured_default;
+      }) ||
+      selectableModels[0] ||
+      providerModels[0];
+
+    if (!selected) {
+      state.selectedModel = null;
+      localStorage.removeItem(MODEL_KEY);
+      modelSelect.disabled = true;
+
+      if (!providerModels.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No models available for this provider";
+        modelSelect.append(option);
+      }
+      status.textContent = "No selectable models are available for this provider.";
+      return;
+    }
+
+    modelSelect.disabled = false;
+    modelSelect.value = selected.model;
+    if (!modelCooldownUntil(selected)) {
+      selectChatModel(selected.model);
+      status.textContent =
+        selected.description ||
+        (selected.free === true
+          ? "Free model. Provider limits may apply."
+          : "Check provider pricing and quota before use.");
+    } else {
+      const resetAt = modelCooldownUntil(selected);
+      selectChatModel(selected.model);
+      status.textContent =
+        (selected.name || selected.model) +
+        " is rate-limited until " +
+        formatResetTime(resetAt) +
+        ". Select another model to continue.";
+    }
+  }
+
+  function selectChatModel(modelId) {
+    const selected = state.models.find(function (model) {
+      return (
+        model.provider === state.selectedProvider &&
+        model.model === modelId
+      );
+    });
+    if (!selected) return;
+
+    state.selectedModel = modelOptionValue(selected);
+    localStorage.setItem(MODEL_KEY, state.selectedModel);
+  }
+
+  function showModelCatalogError(error) {
+    const providerSelect = document.getElementById("chat-provider");
+    const modelSelect = document.getElementById("chat-model");
+    const status = document.getElementById("chat-model-status");
+
+    [providerSelect, modelSelect].forEach(function (select) {
+      if (!select) return;
+
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "Model catalog unavailable";
+      select.replaceChildren(option);
+      select.disabled = true;
+    });
+
+    if (status) {
+      status.textContent =
+        "Could not load models: " +
+        error.message +
+        " Chat can still use the server's default model.";
+    }
+  }
+
+  async function loadAvailableModels() {
+    const catalog = await request("/models");
+    renderModelCatalog(catalog);
+  }
+
   function updateChatMode() {
     const status = document.getElementById("chat-mode-status");
     const input = document.getElementById("chat-question");
@@ -755,10 +1188,9 @@
     }
   }
 
-  // --------------------------------------------------
+  
   // Document management
-  // --------------------------------------------------
-
+  
   async function refreshDocuments() {
     const list = document.getElementById("document-list");
 
@@ -888,9 +1320,8 @@
     }
   }
 
-  // --------------------------------------------------
+ 
   // Chat messages
-  // --------------------------------------------------
 
   function addChatMessage(role, text, sources) {
     const messages = document.getElementById("chat-messages");
@@ -944,10 +1375,9 @@
     return item;
   }
 
-  // --------------------------------------------------
+  
   // Ask AI
-  // --------------------------------------------------
-
+ 
   async function askQuestion(event) {
     event.preventDefault();
 
@@ -955,6 +1385,14 @@
     const question = input.value.trim();
 
     if (!question) return;
+
+    const selectedModel = state.models.find(function (model) {
+      return modelOptionValue(model) === state.selectedModel;
+    });
+    if (selectedModel && modelCooldownUntil(selectedModel)) {
+      updateCooldownStatus();
+      return;
+    }
 
     addChatMessage("You", question);
 
@@ -974,12 +1412,19 @@
     button.disabled = true;
 
     try {
+      const payload = {
+        question: question,
+        workspace_id: state.activeWorkspaceId || null,
+      };
+
+      if (selectedModel) {
+        payload.provider = selectedModel.provider;
+        payload.model = selectedModel.model;
+      }
+
       const result = await request("/chat", {
         method: "POST",
-        body: JSON.stringify({
-          question: question,
-          workspace_id: state.activeWorkspaceId || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       waiting.remove();
@@ -992,15 +1437,35 @@
     } catch (error) {
       waiting.remove();
 
-      addChatMessage("Rezifa AI", error.message);
+      let message = error.message;
+      if (error.status === 429 && selectedModel) {
+        if (error.retryAfterSeconds) {
+          recordModelCooldown(selectedModel, error.retryAfterSeconds);
+          message +=
+            " This model is expected to be available again at " +
+            formatResetTime(
+              Date.now() + error.retryAfterSeconds * 1000
+            ) +
+            ". You can select another model to continue.";
+        } else {
+          message +=
+            " The provider did not supply a reset time; select another model to continue.";
+          const status = document.getElementById("chat-model-status");
+          if (status) {
+            status.textContent =
+              "This model reached its usage limit, but the provider did not provide a reset time. Select another model to continue.";
+          }
+        }
+      }
+      addChatMessage("Rezifa AI", message);
     } finally {
       button.disabled = false;
     }
   }
 
-  // --------------------------------------------------
+ 
   // Notifications
-  // --------------------------------------------------
+  
 
   function showNotice(error) {
     const notice = document.getElementById("app-notice");
@@ -1010,9 +1475,8 @@
     }
   }
 
-  // --------------------------------------------------
+ 
   // Initialize application
-  // --------------------------------------------------
 
   async function initialize() {
     setAuthMode(false);

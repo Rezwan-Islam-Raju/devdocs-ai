@@ -16,14 +16,18 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.models.document_model  
+import app.models.user_model  
+import app.models.workspace_model  
 from app.core.config import settings
-from app.database.session import get_db
+from app.database.session import Base, engine, get_db
 
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.users.users_router import router as users_router
 from app.api.v1.documents.documents_router import router as documents_router
 from app.api.v1.ai.ai_chat_router import router as ai_chat_router
+from app.api.v1.model.model_router import router as model_router
 from app.api.v1.workspaces.workspace_router import router as workspace_router
 
 
@@ -36,14 +40,14 @@ frontend_dir = Path(__file__).resolve().parent / "frontend"
 app.mount(
     "/static",
     StaticFiles(directory=frontend_dir),
-    name="static",
+    name="static"
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"]
 )
 
 app.include_router(users_router)
@@ -51,6 +55,17 @@ app.include_router(workspace_router)
 app.include_router(documents_router, prefix="/api/v1/documents", tags=["Documents"])
 
 app.include_router(ai_chat_router)
+app.include_router(model_router)
+
+
+@app.on_event("startup")
+async def startup_db():
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as exc: 
+        print(f"Database startup check failed: {exc}")
+
 
 @app.get("/", include_in_schema=False)
 async def frontend():
@@ -67,7 +82,7 @@ async def health_check():
 
 @app.get("/health/db")
 async def database_health_check(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(text("SELECT 1;"))
     value = result.scalar()
